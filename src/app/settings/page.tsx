@@ -38,7 +38,8 @@ function ageFrom(dob?: string | null): number | null {
 
 function stripCc(phone?: string | null): string {
   if (!phone) return "";
-  return phone.replace(/[^\d]/g, "").replace(/^91/, "").slice(-10);
+  const digits = phone.replace(/\D/g, "");
+  return digits.length > 10 ? digits.slice(-10) : digits;
 }
 
 export default function SettingsPage() {
