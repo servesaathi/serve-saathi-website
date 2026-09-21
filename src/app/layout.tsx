@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
 // Brand typeface, chosen for legibility (this audience skews older /
@@ -15,6 +16,18 @@ const atkinson = localFont({
   ],
 });
 
+// Display heading font for the 09/2026 website redesign (H1-H3 only). Figma
+// specifies "Source Serif Pro"; Source Serif 4 is its actively-maintained
+// Google Fonts successor (same design, current axis). Confirmed with the
+// user — see CLAUDE.md's Atkinson-only rule this deviates from.
+const sourceSerif = Source_Serif_4({
+  variable: "--font-source-serif",
+  display: "swap",
+  weight: ["400", "600"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Serve Saathi",
   description:
@@ -23,7 +36,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${atkinson.variable} h-full antialiased`}>
+    <html lang="en" className={`${atkinson.variable} ${sourceSerif.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );

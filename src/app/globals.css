@@ -17,6 +17,10 @@
   --color-bg-layout: #eaf2ea;
   --color-bg-base: #ffffff;
   --color-bg-orange: #fff5ef;
+  /* "Background/O Line" — Figma var, new with the 09/2026 website redesign:
+     progress-track fill, icon-circle backgrounds and card dividers on
+     orange-tinted surfaces. Not in the app's original token set. */
+  --color-orange-line: #ffe3d2;
 
   --color-border-hairline: #d5e5d6;
   --color-border-card: #abcbad;
@@ -40,6 +44,7 @@
   --color-bg-layout: var(--color-bg-layout);
   --color-bg-base: var(--color-bg-base);
   --color-bg-orange: var(--color-bg-orange);
+  --color-orange-line: var(--color-orange-line);
 
   --color-border-hairline: var(--color-border-hairline);
   --color-border-card: var(--color-border-card);
@@ -53,6 +58,10 @@
   --color-error: var(--color-error);
 
   --font-sans: var(--font-atkinson);
+  /* Display heading typeface for the 09/2026 website redesign (H1-H3 only —
+     H4-H6 and all body text stay on Atkinson). See CLAUDE.md; confirmed with
+     the user since it deviates from the app's single-typeface rule. */
+  --font-serif: var(--font-source-serif);
 
   /* Radius vocabulary is tied to element type, not one global value —
      see CLAUDE.md. Named so intent stays legible at the call site

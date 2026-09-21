@@ -84,6 +84,12 @@ export const authService = {
     return res.data.data;
   },
 
+  /** Admin/staff email + password login (separate backend route from /auth/login). */
+  adminLogin: async (payload: LoginPayload): Promise<AuthResponse> => {
+    const res = await apiClient.post<ApiEnvelope<AuthResponse>>(ENDPOINTS.auth.adminLogin, payload);
+    return res.data.data;
+  },
+
   /** Invalidates the current session server-side. Clear local auth state regardless. */
   logout: async (): Promise<void> => {
     await apiClient.post<ApiEnvelope<unknown>>(ENDPOINTS.auth.logout);

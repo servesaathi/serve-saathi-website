@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { AppShell } from "@/components/app/AppShell";
+import { SiteShell } from "@/components/site/SiteShell";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { useLogout } from "@/lib/useLogout";
@@ -41,8 +41,8 @@ export default function ProfilePage() {
     : [];
 
   return (
-    <AppShell>
-      <div className="flex max-w-[920px] flex-col gap-8">
+    <SiteShell>
+      <div className="flex max-w-[920px] flex-col gap-8 py-10">
         <div className="flex items-center gap-5">
           <Avatar name={name || "User"} size={64} />
           <div className="flex flex-col gap-0.5">
@@ -86,6 +86,6 @@ export default function ProfilePage() {
           </Button>
         </div>
       </div>
-    </AppShell>
+    </SiteShell>
   );
 }

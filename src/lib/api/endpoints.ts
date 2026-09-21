@@ -9,6 +9,7 @@ export const ENDPOINTS = {
     register: '/auth/register',
     refreshToken: '/auth/refresh',
     login: '/auth/login',
+    adminLogin: '/admin/auth/login',
     logout: '/auth/logout',
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password',

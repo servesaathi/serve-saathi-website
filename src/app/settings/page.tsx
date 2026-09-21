@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { AppShell } from "@/components/app/AppShell";
+import { SiteShell } from "@/components/site/SiteShell";
 import { ProfileCard } from "@/components/app/ProfileCard";
 import { SettingsSidebar, type SettingsSection } from "@/components/app/SettingsSidebar";
 import { Button } from "@/components/ui/Button";
@@ -152,8 +152,8 @@ export default function SettingsPage() {
     genders.find((g) => g.value === form.genderId)?.label ?? careProfile?.gender?.name ?? null;
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-8 lg:flex-row lg:gap-16">
+    <SiteShell>
+      <div className="flex flex-col gap-8 py-10 lg:flex-row lg:gap-16">
         <SettingsSidebar active={section} onSelect={onSelectSection} />
 
         <div className="flex min-w-0 flex-1 flex-col gap-8">
@@ -244,6 +244,6 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
-    </AppShell>
+    </SiteShell>
   );
 }
