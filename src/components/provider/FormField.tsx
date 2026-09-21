@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { Select } from "@/components/ui/Select";
 import { TextInput } from "@/components/ui/TextInput";
-import type { Field, FieldValue } from "@/lib/provider-onboarding";
+import { sanitizePhoneInput, type Field, type FieldValue } from "@/lib/provider-onboarding";
 
 // Renders one schema Field with the shared ui primitives. Text-ish/select
 // fields reuse TextInput/Select; radio/checkbox groups and the textarea are
@@ -169,9 +169,9 @@ export function FormField({ field, value, error, onChange, onBlur }: Props) {
       helperText={field.helperText}
       autoComplete={field.type === "email" ? "email" : field.type === "tel" ? "tel" : undefined}
       inputMode={field.type === "tel" ? "tel" : field.type === "email" ? "email" : field.type === "url" ? "url" : undefined}
-      maxLength={field.type === "tel" ? 20 : field.type === "email" ? 254 : undefined}
+      maxLength={field.type === "email" ? 254 : undefined}
       value={typeof value === "string" ? value : ""}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(field.type === "tel" ? sanitizePhoneInput(e.target.value) : e.target.value)}
       onBlur={onBlur}
       error={error}
     />

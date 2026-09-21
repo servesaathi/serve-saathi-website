@@ -25,6 +25,18 @@ export function normalizeIndianPhone(value: string): string | null {
   return /^\d{10}$/.test(d) ? d : null;
 }
 
+/**
+ * Input filter for phone fields: digits only, capped at 10. A pasted number
+ * with a country/trunk prefix ("+91 98765 43210", "098765 43210") is reduced
+ * to its 10 digits instead of being truncated from the wrong end.
+ */
+export function sanitizePhoneInput(raw: string): string {
+  let d = raw.replace(/\D/g, "");
+  if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
+  else if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
+  return d.slice(0, 10);
+}
+
 /** Indian mobile: 10 digits starting 6–9. */
 export function isValidMobile(value: string): boolean {
   const d = normalizeIndianPhone(value);
@@ -52,12 +64,12 @@ export function emailError(value: string): string | undefined {
 
 export function mobileError(value: string): string | undefined {
   if (!value.trim()) return undefined;
-  return isValidMobile(value) ? undefined : "Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9.";
+  return isValidMobile(value) ? undefined : "Enter a 10-digit mobile number starting with 6, 7, 8 or 9.";
 }
 
 export function contactPhoneError(value: string): string | undefined {
   if (!value.trim()) return undefined;
   return isValidContactPhone(value)
     ? undefined
-    : "Enter a valid 10-digit phone number (mobile, or landline with STD code).";
+    : "Enter a 10-digit phone number (mobile, or landline with STD code).";
 }

@@ -16,6 +16,7 @@ import {
   emailError,
   getCategoryForm,
   mobileError,
+  sanitizePhoneInput,
   toE164,
   validateField,
   validateSection,
@@ -146,7 +147,7 @@ function AccountStep() {
         <TextInput label="First name" requiredMark autoComplete="given-name" value={v.firstName} onChange={set("firstName")} error={errors.firstName} />
         <TextInput label="Last name" requiredMark autoComplete="family-name" value={v.lastName} onChange={set("lastName")} error={errors.lastName} />
         <TextInput label="Email" requiredMark type="email" autoComplete="email" value={v.email} onChange={set("email")} onBlur={blurCheck("email")} error={errors.email} />
-        <TextInput label="Mobile number" type="tel" autoComplete="tel" placeholder="10-digit mobile number" helperText="Optional. Indian mobile numbers only." inputMode="tel" maxLength={20} value={v.phone} onChange={set("phone")} onBlur={blurCheck("phone")} error={errors.phone} />
+        <TextInput label="Mobile number" type="tel" autoComplete="tel" placeholder="10-digit mobile number" helperText="Optional. Indian mobile numbers only." inputMode="tel" value={v.phone} onChange={(e) => set("phone")({ target: { value: sanitizePhoneInput(e.target.value) } })} onBlur={blurCheck("phone")} error={errors.phone} />
         <PasswordInput label="Password" requiredMark autoComplete="new-password" placeholder="At least 8 characters" value={v.password} onChange={set("password")} error={errors.password} />
       </div>
       {formError && (
