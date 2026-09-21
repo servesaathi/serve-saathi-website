@@ -3,7 +3,10 @@ import { ASSISTED_LIVING } from "./categories/assisted-living";
 import { DAY_CARE } from "./categories/day-care";
 import type { Answers, CategoryForm, Condition, Field, Section } from "./types";
 
+import { contactPhoneError, emailError } from "./validators";
+
 export * from "./types";
+export * from "./validators";
 
 // Category → form registry. To onboard a new category, add a CategoryForm
 // under ./categories and list it here; the picker, stepper, validation and
@@ -29,15 +32,12 @@ export function visibleSections(form: CategoryForm, answers: Answers): Section[]
     .filter((s) => s.fields.length > 0);
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^(\+?91)?[6-9]\d{9}$/;
-
 export function validateField(field: Field, value: string | string[] | undefined): string | undefined {
   const empty = value === undefined || (Array.isArray(value) ? value.length === 0 : value.trim() === "");
   if (empty) return field.required ? "This field is required." : undefined;
   const v = Array.isArray(value) ? "" : value.trim();
-  if (field.type === "email" && !EMAIL_RE.test(v)) return "Enter a valid email address.";
-  if (field.type === "tel" && !PHONE_RE.test(v.replace(/[\s-]/g, ""))) return "Enter a valid 10-digit mobile number.";
+  if (field.type === "email") return emailError(v);
+  if (field.type === "tel") return contactPhoneError(v);
   if (field.type === "url" && !/^https?:\/\/\S+\.\S+/.test(v)) return "Enter a valid link starting with http:// or https://";
   return undefined;
 }
