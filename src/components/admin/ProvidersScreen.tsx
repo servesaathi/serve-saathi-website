@@ -45,7 +45,12 @@ export function VerificationBadge({ status }: { status: VerificationStatus }) {
   return <Badge tone={tone}>{label}</Badge>;
 }
 
-/** Listed/Hidden switch — PATCH /providers/{id}/status. Hidden providers don't appear to families. */
+/**
+ * Active/Deactivated switch — PATCH /providers/{id}/status. Per the backend
+ * (2026-10): this flips the provider's User.isBanned, i.e. blocks or restores
+ * their login without deleting data. Public visibility is decided by
+ * verification status, not this switch.
+ */
 export function ActiveSwitch({ provider, onChange }: { provider: AdminProvider; onChange: (next: boolean) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   return (
@@ -53,7 +58,7 @@ export function ActiveSwitch({ provider, onChange }: { provider: AdminProvider; 
       type="button"
       role="switch"
       aria-checked={provider.isActive}
-      aria-label={`${providerName(provider)} visible to families`}
+      aria-label={`${providerName(provider)} account active`}
       disabled={busy}
       onClick={async () => {
         setBusy(true);
@@ -68,7 +73,7 @@ export function ActiveSwitch({ provider, onChange }: { provider: AdminProvider; 
       <span className={`flex h-6 w-11 items-center rounded-full p-0.5 transition-colors ${provider.isActive ? "bg-primary" : "bg-[#c9c7c5]"}`}>
         <span className={`size-5 rounded-full bg-white shadow transition-transform ${provider.isActive ? "translate-x-5" : ""}`} />
       </span>
-      <span className="text-[16px] text-text-secondary">{provider.isActive ? "Listed" : "Hidden"}</span>
+      <span className="text-[16px] text-text-secondary">{provider.isActive ? "Active" : "Deactivated"}</span>
     </button>
   );
 }
@@ -110,7 +115,7 @@ export function ProvidersScreen() {
   async function toggleListing(p: AdminProvider, next: boolean) {
     try {
       await providers.setActive(p.id, next);
-      done(`${providerName(p)} is now ${next ? "listed" : "hidden"}.`);
+      done(next ? `${providerName(p)} can sign in again.` : `${providerName(p)} is deactivated — their login is blocked.`);
     } catch (err) {
       setFlash({ message: err instanceof Error ? err.message : "Couldn't update listing.", tone: "error" });
     }
@@ -151,7 +156,7 @@ export function ProvidersScreen() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Providers"
-        description="Care organisations listed on ServeSaathi — verify new applications and control what families see."
+        description="Care organisations on ServeSaathi — verify applications (only verified providers are public) and manage their accounts."
         action={
           <Button onClick={() => setDialog({ type: "add" })} leftIcon={<Icon src={ICONS.add} size={22} />}>
             Add provider
@@ -209,7 +214,7 @@ export function ProvidersScreen() {
                 <th scope="col" className={TABLE.th}>Provider</th>
                 <th scope="col" className={TABLE.th}>City</th>
                 <th scope="col" className={TABLE.th}>Verification</th>
-                <th scope="col" className={TABLE.th}>Listing</th>
+                <th scope="col" className={TABLE.th}>Account</th>
                 <th scope="col" className={TABLE.th}>Rating</th>
                 <th scope="col" className={`${TABLE.th} text-right`}>Actions</th>
               </tr>
@@ -305,7 +310,7 @@ export function ProviderDecisionDialogs({
         onClose={onClose}
         title="Verify provider?"
         confirmLabel="Mark as verified"
-        message={<p>{name} will show the “Verified Partner” badge to families. Only verify after checking their documents.</p>}
+        message={<p>{name} will appear in the public provider listing with the “Verified Partner” badge. Only verify after checking their documents and profile.</p>}
         onConfirm={async () => {
           await providers.verify(p!.id);
           onDone(`${name} is verified.`);
@@ -317,7 +322,7 @@ export function ProviderDecisionDialogs({
         title="Reject provider?"
         confirmLabel="Reject"
         destructive
-        message={<p>{name}&apos;s application will be marked rejected. You can verify them later if they resubmit.</p>}
+        message={<p>{name}&apos;s application will be marked rejected and they stay hidden from families. You can verify them later if they resubmit.</p>}
         onConfirm={async () => {
           await providers.reject(p!.id);
           onDone(`${name} was rejected.`);
@@ -326,19 +331,19 @@ export function ProviderDecisionDialogs({
       <ConfirmDialog
         open={dialog?.type === "delete"}
         onClose={onClose}
-        title="Delete provider?"
-        confirmLabel="Delete permanently"
+        title="Remove provider?"
+        confirmLabel="Remove provider"
         destructive
         message={
           <p>
-            This permanently removes <strong>{name}</strong> and their listing. It can&apos;t be undone — to take them
-            off the site temporarily, switch their listing to Hidden instead.
+            Removes <strong>{name}</strong>&apos;s provider profile from the platform. Their login account itself is kept. To
+            block them temporarily instead, switch their account to Deactivated.
           </p>
         }
         onConfirm={async () => {
           await providers.remove(p!.id);
           if (onDeleted) onDeleted();
-          else onDone(`Deleted ${name}.`);
+          else onDone(`Removed ${name}.`);
         }}
       />
     </>

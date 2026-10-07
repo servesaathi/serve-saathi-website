@@ -22,10 +22,32 @@ import { ICONS, Icon } from "./parts";
 // Exception: demo-data mode outside production, so the screens can be
 // reviewed without an admin account.
 
-const NAV = [
-  { label: "Users", href: "/admin/users", icon: ICONS.users },
-  { label: "Providers", href: "/admin/providers", icon: ICONS.providers },
+type NavItem = { label: string; href: string; icon: string };
+
+const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
+  {
+    title: "People",
+    items: [
+      { label: "Users", href: "/admin/users", icon: ICONS.users },
+      { label: "Providers", href: "/admin/providers", icon: ICONS.providers },
+    ],
+  },
+  {
+    title: "Catalogue",
+    items: [
+      { label: "Categories", href: "/admin/categories", icon: ICONS.categories },
+      { label: "Master data", href: "/admin/master-data", icon: ICONS.masterData },
+    ],
+  },
+  {
+    title: "Money",
+    items: [
+      { label: "Finance", href: "/admin/finance", icon: ICONS.finance },
+      { label: "Subscriptions", href: "/admin/subscriptions", icon: ICONS.subscriptions },
+    ],
+  },
 ];
+const NAV = NAV_GROUPS.flatMap((g) => g.items);
 
 const ADMIN_ROLES = ["admin", "super_admin"];
 const DEMO_BYPASS = ADMIN_DATA_MODE === "mock" && process.env.NODE_ENV !== "production";
@@ -49,11 +71,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const name = user ? `${user.firstName} ${user.lastName}`.trim() : "Demo admin";
   const roleLabel = user?.roles.includes("super_admin") ? "Super admin" : user ? "Admin" : "Demo mode";
 
-  const navLinks = (compact: boolean) =>
-    NAV.map((item) => {
+  const navLinks = (compact: boolean, items: NavItem[] = NAV) =>
+    items.map((item) => {
       const active = pathname.startsWith(item.href);
       return (
-        <li key={item.href} className={compact ? "flex-1" : undefined}>
+        <li key={item.href} className={compact ? "shrink-0" : undefined}>
           <Link
             href={item.href}
             aria-current={active ? "page" : undefined}
@@ -105,9 +127,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
             className="sticky top-26 flex h-[calc(100dvh-8rem)] flex-col justify-between overflow-y-auto rounded-card p-5 shadow-[0_8px_8px_rgba(30,27,24,0.16)]"
             style={{ background: SIDEBAR_BG }}
           >
-            <nav aria-label="Admin">
-              <p className="px-4 pb-3 text-[14px] leading-5 tracking-wide text-white/75 uppercase">Manage</p>
-              <ul className="flex flex-col gap-1">{navLinks(false)}</ul>
+            <nav aria-label="Admin" className="flex flex-col gap-5">
+              {NAV_GROUPS.map((g) => (
+                <div key={g.title}>
+                  <p className="px-4 pb-2 text-[14px] leading-5 tracking-wide text-white/75 uppercase">{g.title}</p>
+                  <ul className="flex flex-col gap-1">{navLinks(false, g.items)}</ul>
+                </div>
+              ))}
             </nav>
             {ready && (
               <div className="flex flex-col gap-3 border-t border-white/20 pt-5">
@@ -136,7 +162,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Mobile/tablet nav */}
           <nav aria-label="Admin" className="px-4 pt-4 sm:px-6 lg:hidden">
-            <ul className="flex gap-2 rounded-card p-2" style={{ background: SIDEBAR_BG }}>
+            <ul className="flex gap-2 overflow-x-auto rounded-card p-2" style={{ background: SIDEBAR_BG }}>
               {navLinks(true)}
             </ul>
           </nav>

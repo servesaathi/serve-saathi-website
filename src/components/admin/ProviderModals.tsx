@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { TextInput } from "@/components/ui/TextInput";
-import { providerName, type AdminProvider, type NewProviderInput, type ProviderUpdateInput } from "@/lib/admin";
+import { adminSource, providerName, useAdminQuery, type AdminProvider, type NewProviderInput, type ProviderUpdateInput } from "@/lib/admin";
 import { getErrorMessage } from "@/lib/api/types";
 
 // Add provider = POST /providers (RegisterProviderDto: the login account).
@@ -151,6 +151,11 @@ export function ProviderEditModal({
     commission: String(provider.commissionRatePercent),
   });
   const [isAvailable, setIsAvailable] = useState(provider.isAvailable);
+  // Categories (onboarding step 4). Sent only if the admin changes them, so an
+  // edit can never silently unlink categories the API didn't return to us.
+  const allCategories = useAdminQuery("edit-provider-categories", () => adminSource.categories.list({ page: 1, limit: 100 }));
+  const [categoryIds, setCategoryIds] = useState<number[]>(() => provider.categories?.map((c) => c.id) ?? []);
+  const [categoriesTouched, setCategoriesTouched] = useState(false);
   const [bedsAvailable, setBedsAvailable] = useState(provider.bedsAvailable);
   const [errors, setErrors] = useState<Partial<Record<keyof typeof v, string>>>({});
   const { busy, formError, run } = useSubmit(onClose);
@@ -186,6 +191,7 @@ export function ProviderEditModal({
           aboutText: v.aboutText.trim() || undefined,
           isAvailable,
           bedsAvailable,
+          ...(categoriesTouched ? { categoryIds } : {}),
         },
         commission
       )
@@ -236,6 +242,42 @@ export function ProviderEditModal({
             className="w-full rounded-input border-[1.5px] border-border-hairline bg-bg-base px-4 py-3 text-[16px] leading-[22px] text-text-primary focus:border-primary focus:outline-none"
           />
         </div>
+        <fieldset className="flex flex-col gap-2 sm:col-span-2">
+          <legend className="pb-2 text-[16px] leading-[22px] font-semibold text-text-primary">Categories</legend>
+          {allCategories.loading && <p className="text-[15px] text-text-muted">Loading categories…</p>}
+          {allCategories.error && <p className="text-[15px] text-error">Couldn&apos;t load categories: {allCategories.error}</p>}
+          <div className="flex flex-wrap gap-2">
+            {allCategories.data?.items.map((c) => {
+              const on = categoryIds.includes(c.id);
+              return (
+                <label
+                  key={c.id}
+                  className={`flex h-10 cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-4 text-[15px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary ${
+                    on ? "border-tertiary bg-bg-orange text-text-primary" : "border-border-hairline bg-bg-base text-text-secondary"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={on}
+                    onChange={() => {
+                      setCategoriesTouched(true);
+                      setCategoryIds((ids) => (ids.includes(c.id) ? ids.filter((x) => x !== c.id) : [...ids, c.id]));
+                    }}
+                  />
+                  {c.name}
+                  {!c.isActive && <span className="text-[13px] text-text-muted">(inactive)</span>}
+                </label>
+              );
+            })}
+          </div>
+          {!provider.categories && (
+            <p className="text-[14px] leading-5 text-text-muted">
+              Current categories aren&apos;t included in this provider&apos;s data, so none are pre-selected. Leave them untouched to keep
+              what&apos;s saved; picking any replaces the saved set.
+            </p>
+          )}
+        </fieldset>
         <TextInput label="Commission rate (%)" inputMode="decimal" value={v.commission} onChange={set("commission")} error={errors.commission} />
         <div className="flex flex-col justify-end">
           {toggle("Accepting new requests", isAvailable, setIsAvailable)}

@@ -46,7 +46,7 @@ export function ProviderAdminDetail({ id }: { id: number }) {
               onChange={async (next) => {
                 try {
                   await providers.setActive(p.id, next);
-                  done(next ? "Listing is visible to families." : "Listing hidden from families.");
+                  done(next ? "Account active — they can sign in again." : "Account deactivated — their login is blocked.");
                 } catch (err) {
                   setFlash({ message: err instanceof Error ? err.message : "Couldn't update listing.", tone: "error" });
                 }
@@ -106,6 +106,7 @@ export function ProviderAdminDetail({ id }: { id: number }) {
               </a>
             ) : null,
           },
+          { label: "Categories", value: p.categories?.length ? p.categories.map((c) => c.name).join(", ") : null },
           { label: "Accepting new requests", value: p.isAvailable ? "Yes" : "No" },
           { label: "Beds available", value: p.bedsAvailable ? "Yes" : "No" },
           { label: "About", value: p.aboutText },

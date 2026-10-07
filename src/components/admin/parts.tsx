@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ComponentPropsWithoutRef, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { PageMeta } from "@/lib/admin";
 
 // Building blocks for the admin screens. There's no admin frame in Figma, so
@@ -42,6 +43,10 @@ export const ICONS = {
   search: "/icons/homepage/explore-search.svg",
   users: "/icons/admin/profile.svg",
   providers: "/icons/admin/group.svg",
+  categories: "/icons/admin/categories.svg",
+  finance: "/icons/admin/notes.svg",
+  subscriptions: "/icons/admin/calendar.svg",
+  masterData: "/icons/admin/book.svg",
 } as const;
 
 /* ---------- page header & stats ---------- */
@@ -99,24 +104,31 @@ export function IconButton({
   hint?: string;
   tone?: keyof typeof ICON_BTN_TONES;
 } & Omit<ComponentPropsWithoutRef<"button">, "children">) {
+  const hintId = useId();
+  const showHint = Boolean(props.disabled && hint);
   return (
-    <span className="group relative inline-flex">
+    <WithTooltip text={showHint ? hint! : label}>
       <button
         type="button"
         aria-label={label}
+        aria-describedby={showHint ? hintId : undefined}
         className={`flex size-11 items-center justify-center rounded-control transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:text-[#c9c7c5] disabled:hover:bg-transparent ${ICON_BTN_TONES[tone]} ${className}`}
         {...props}
       >
         <Icon src={icon} size={22} />
       </button>
-      <Tooltip text={props.disabled && hint ? hint : label} />
-    </span>
+      {showHint && (
+        <span id={hintId} className="sr-only">
+          {hint}
+        </span>
+      )}
+    </WithTooltip>
   );
 }
 
 export function IconLink({ icon, label, href }: { icon: string; label: string; href: string }) {
   return (
-    <span className="group relative inline-flex">
+    <WithTooltip text={label}>
       <Link
         href={href}
         aria-label={label}
@@ -124,18 +136,68 @@ export function IconLink({ icon, label, href }: { icon: string; label: string; h
       >
         <Icon src={icon} size={22} />
       </Link>
-      <Tooltip text={label} />
-    </span>
+    </WithTooltip>
   );
 }
 
-function Tooltip({ text }: { text: string }) {
+const TOOLTIP_MAX_W = 240;
+const TOOLTIP_GAP = 6;
+const EDGE = 8;
+
+/**
+ * Hover/focus tooltip rendered into document.body with fixed positioning, so
+ * no ancestor's overflow (the rounded table wrapper, scroll areas, cards) can
+ * clip it — a z-index alone can't escape `overflow: hidden`. Placed above the
+ * trigger, flipped below when there's no room, and clamped to the viewport.
+ * Visual only (aria-hidden): the trigger already carries its accessible name.
+ * Esc dismisses it (WCAG 1.4.13); scroll/resize hide it so it never detaches
+ * from its trigger.
+ */
+function WithTooltip({ text, children }: { text: string; children: ReactNode }) {
+  const anchor = useRef<HTMLSpanElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; below: boolean } | null>(null);
+
+  function show() {
+    const r = anchor.current?.getBoundingClientRect();
+    if (!r) return;
+    const half = TOOLTIP_MAX_W / 2;
+    const center = r.left + r.width / 2;
+    const left = Math.min(Math.max(center, EDGE + half), window.innerWidth - EDGE - half);
+    const below = r.top < 56;
+    setPos({ left, top: below ? r.bottom + TOOLTIP_GAP : r.top - TOOLTIP_GAP, below });
+  }
+  const hide = () => setPos(null);
+
+  useEffect(() => {
+    if (!pos) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPos(null);
+    const onMove = () => setPos(null);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onMove, true);
+    window.addEventListener("resize", onMove);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onMove, true);
+      window.removeEventListener("resize", onMove);
+    };
+  }, [pos]);
+
   return (
-    <span
-      role="presentation"
-      className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 w-max max-w-[240px] -translate-x-1/2 rounded-control bg-secondary px-2.5 py-1 text-center text-[13px] leading-[17px] text-white opacity-0 shadow transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
-    >
-      {text}
+    <span ref={anchor} className="inline-flex" onPointerEnter={show} onPointerLeave={hide} onFocus={show} onBlur={hide}>
+      {children}
+      {pos &&
+        createPortal(
+          <span
+            aria-hidden
+            className="pointer-events-none fixed z-[1000] flex w-[240px] justify-center"
+            style={{ left: pos.left, top: pos.top, transform: `translate(-50%, ${pos.below ? "0" : "-100%"})` }}
+          >
+            <span className="rounded-control bg-secondary px-2.5 py-1 text-center text-[13px] leading-[17px] text-white shadow-[0_4px_12px_rgba(30,27,24,0.2)]">
+              {text}
+            </span>
+          </span>,
+          document.body
+        )}
     </span>
   );
 }
@@ -399,5 +461,79 @@ export function DetailList({ title, rows }: { title?: string; rows: { label: str
         ))}
       </dl>
     </section>
+  );
+}
+
+/** Inline explainer box — used where the backend limits what a screen can do. */
+export function Notice({ tone, title, children }: { tone: "grey" | "orange"; title: string; children: ReactNode }) {
+  return (
+    <div
+      className={`flex flex-col gap-1 rounded-card border px-5 py-4 text-[16px] leading-[22px] text-text-secondary ${
+        tone === "orange" ? "border-orange-line bg-bg-orange" : "border-border-hairline bg-bg-base"
+      }`}
+    >
+      <p className="font-semibold text-text-primary">{title}</p>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+/** Small labelled select matching the 48px search field. */
+export function FilterSelect({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <>
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-12 rounded-input border-[1.5px] border-border-hairline bg-bg-base px-4 text-[16px] text-text-primary focus:border-primary focus:outline-none md:w-[220px]"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </>
+  );
+}
+
+/** Tab strip for screens with two views (e.g. Payments | Wallets). */
+export function Tabs<T extends string>({ value, onChange, tabs, label }: { value: T; onChange: (v: T) => void; tabs: { value: T; label: string }[]; label: string }) {
+  return (
+    <div role="tablist" aria-label={label} className="flex gap-1 self-start rounded-card bg-bg-base p-1.5">
+      {tabs.map((t) => {
+        const active = t.value === value;
+        return (
+          <button
+            key={t.value}
+            role="tab"
+            type="button"
+            aria-selected={active}
+            onClick={() => onChange(t.value)}
+            className={`h-11 rounded-control px-5 text-[17px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+              active ? "bg-tertiary font-semibold text-white" : "text-text-secondary hover:bg-bg-layout"
+            }`}
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }

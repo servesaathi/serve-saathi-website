@@ -1,4 +1,18 @@
 import type {
+  AdminCategory,
+  AdminPayment,
+  AdminSubscription,
+  AdminWallet,
+  CategoryFilter,
+  CategoryListParams,
+  LookupEntry,
+  LookupInput,
+  PageParams,
+  PaymentListParams,
+  PlanInput,
+  SubscriptionPlan,
+  WalletAdjustInput,
+  WalletTransaction,
   AdminProvider,
   AdminUser,
   NewProviderInput,
@@ -40,6 +54,29 @@ export interface AdminDataSource {
     verify(id: number): Promise<AdminProvider>;
     reject(id: number): Promise<AdminProvider>;
     setCommission(id: number, percent: number): Promise<AdminProvider>;
+  };
+  categories: {
+    list(params: CategoryListParams): Promise<Paginated<AdminCategory>>;
+    /** Resolves `null` while the backend endpoint isn't deployed (404). */
+    filters(slug: string): Promise<CategoryFilter[] | null>;
+  };
+  finance: {
+    payments(params: PaymentListParams): Promise<Paginated<AdminPayment>>;
+    wallet(id: number): Promise<AdminWallet>;
+    walletTransactions(id: number, params: PageParams): Promise<Paginated<WalletTransaction>>;
+    adjustWallet(id: number, input: WalletAdjustInput): Promise<WalletTransaction>;
+  };
+  plans: {
+    list(params: PageParams): Promise<Paginated<SubscriptionPlan>>;
+    create(input: PlanInput): Promise<SubscriptionPlan>;
+    update(id: number, input: Partial<PlanInput>): Promise<SubscriptionPlan>;
+    subscriptions(params: PageParams): Promise<Paginated<AdminSubscription>>;
+  };
+  lookups: {
+    list(path: string): Promise<LookupEntry[]>;
+    create(path: string, input: LookupInput): Promise<LookupEntry>;
+    update(path: string, id: number, input: LookupInput): Promise<LookupEntry>;
+    remove(path: string, id: number): Promise<void>;
   };
 }
 
