@@ -5,6 +5,7 @@ import type {
   AdminProvider,
   AdminUser,
   NewProviderInput,
+  PageMeta,
   Paginated,
   ProviderListParams,
   ProviderUpdateInput,
@@ -37,6 +38,28 @@ async function get<T>(url: string, params?: object): Promise<T> {
   const res = await apiClient.get<ApiEnvelope<T>>(url, { params });
   return res.data.data;
 }
+// The live backend returns lists as `{ data: T[], meta: {...} }` — `meta` is
+// a sibling of `data`, not nested inside it as the OpenAPI spec says (same
+// quirk category.service.ts documents). Accept both so a spec-conformant fix
+// on the backend doesn't break the console.
+type ListBody<T> = ApiEnvelope<T[] | Paginated<T>> & { meta?: PageMeta };
+
+async function list<T>(url: string, params: object, fallback: { page: number; limit: number }): Promise<Paginated<T>> {
+  const res = await apiClient.get<ListBody<T>>(url, { params });
+  const body = res.data;
+  if (Array.isArray(body.data)) {
+    const items = body.data;
+    const meta = body.meta ?? {
+      total: items.length,
+      page: fallback.page,
+      limit: fallback.limit,
+      totalPages: 1,
+    };
+    return { items, meta };
+  }
+  return body.data;
+}
+
 async function patch<T>(url: string, body?: object): Promise<T> {
   const res = await apiClient.patch<ApiEnvelope<T>>(url, body);
   return res.data.data;
@@ -51,17 +74,14 @@ export const apiSource: AdminDataSource = {
   kind: "api",
   users: {
     list: (p: UserListParams) =>
-      get<Paginated<AdminUser>>(ADMIN_ENDPOINTS.users, clean({ ...p, sortBy: "createdAt", sortOrder: "DESC" })),
+      list<AdminUser>(ADMIN_ENDPOINTS.users, clean({ ...p, sortBy: "createdAt", sortOrder: "DESC" }), p),
     get: (id) => get<AdminUser>(ADMIN_ENDPOINTS.user(id)),
     ban: (id) => patch<AdminUser>(ADMIN_ENDPOINTS.ban(id)),
     unban: (id) => patch<AdminUser>(ADMIN_ENDPOINTS.unban(id)),
   },
   providers: {
     list: (p: ProviderListParams) =>
-      get<Paginated<AdminProvider>>(
-        ADMIN_ENDPOINTS.providersAdmin,
-        clean({ ...p, sortBy: "createdAt", sortOrder: "DESC" })
-      ),
+      list<AdminProvider>(ADMIN_ENDPOINTS.providersAdmin, clean({ ...p, sortBy: "createdAt", sortOrder: "DESC" }), p),
     get: (id) => get<AdminProvider>(ADMIN_ENDPOINTS.provider(id)),
     create: async (input: NewProviderInput) => {
       const res = await apiClient.post<ApiEnvelope<AdminProvider>>(ADMIN_ENDPOINTS.providers, clean(input));

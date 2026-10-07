@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
 // Centered dialog on the native <dialog> element, so focus trapping, Esc to
-// close and the inert backdrop come from the browser. Card styling follows
-// the redesign's pop-ups (bg-base, 8px radius, soft shadow); the close glyph
-// is the compare-table close icon (Figma 3320:9629).
+// close and the inert backdrop come from the browser. Styling follows the
+// Figma "Pop up - Emergency Contacts" frame (3354:397952): pale-green card,
+// white fields on top, and a filled primary close circle with the
+// design-system "Close" glyph in white.
 
 type ModalProps = {
   open: boolean;
@@ -45,8 +45,8 @@ export function Modal({ open, onClose, title, description, children, actions, si
       className={`m-auto w-[calc(100%-32px)] ${WIDTH[size]} rounded-card bg-transparent p-0 backdrop:bg-black/40`}
     >
       {open && (
-        <div className="flex max-h-[calc(100dvh-48px)] flex-col rounded-card bg-bg-base shadow-[0_8px_24px_rgba(30,27,24,0.16)]">
-          <div className="flex items-start justify-between gap-4 border-b border-border-hairline px-6 py-5">
+        <div className="flex max-h-[calc(100dvh-48px)] flex-col rounded-card bg-bg-layout shadow-[0_8px_24px_rgba(30,27,24,0.16)]">
+          <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-2">
             <div className="flex flex-col gap-1">
               <h2 id={titleId} className="text-[22px] leading-[30px] font-semibold text-text-primary">
                 {title}
@@ -57,14 +57,18 @@ export function Modal({ open, onClose, title, description, children, actions, si
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-bg-layout focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-white transition-colors hover:bg-primary-pressed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
-              <Image src="/icons/services/close-circle.svg" alt="" width={24} height={24} />
+              <span
+                aria-hidden
+                className="size-5 bg-current"
+                style={{ WebkitMask: "url(/icons/admin/close.svg) center / contain no-repeat", mask: "url(/icons/admin/close.svg) center / contain no-repeat" }}
+              />
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
           {actions && (
-            <div className="flex flex-col-reverse gap-3 border-t border-border-hairline px-6 py-4 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-3 px-6 pt-2 pb-6 sm:flex-row sm:justify-end">
               {actions}
             </div>
           )}

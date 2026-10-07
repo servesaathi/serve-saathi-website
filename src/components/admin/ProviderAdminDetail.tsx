@@ -6,7 +6,7 @@ import { BackLink } from "@/components/services/BackLink";
 import { adminSource, displayName, providerName, useAdminQuery } from "@/lib/admin";
 import { ProviderEditModal } from "./ProviderModals";
 import { ActiveSwitch, ProviderDecisionDialogs, VerificationBadge, saveProvider } from "./ProvidersScreen";
-import { ActionButton, DetailList, Flash, PageHeader, formatDate } from "./parts";
+import { ActionButton, DetailList, Flash, ICONS, Identity, StatCard, formatDate } from "./parts";
 
 // /admin/providers/[id] — GET /providers/{id} with every provider action.
 
@@ -33,13 +33,14 @@ export function ProviderAdminDetail({ id }: { id: number }) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <BackLink href="/admin/providers" label="All providers" />
-      <PageHeader
-        title={providerName(p)}
-        description={<VerificationBadge status={p.verificationStatus} />}
-        action={
-          <div className="flex flex-wrap items-center gap-2">
+
+      <div className="flex flex-col gap-5 rounded-card bg-bg-base p-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3">
+          <Identity name={providerName(p)} sub={`Provider #${p.id} · joined ${formatDate(p.createdAt)}`} />
+          <div className="flex flex-wrap items-center gap-3">
+            <VerificationBadge status={p.verificationStatus} />
             <ActiveSwitch
               provider={p}
               onChange={async (next) => {
@@ -51,27 +52,39 @@ export function ProviderAdminDetail({ id }: { id: number }) {
                 }
               }}
             />
-            {p.verificationStatus !== "verified" && (
-              <ActionButton tone="primary" onClick={() => setDialog("verify")}>
-                Verify
-              </ActionButton>
-            )}
-            {p.verificationStatus !== "rejected" && (
-              <ActionButton tone="danger" onClick={() => setDialog("reject")}>
-                Reject
-              </ActionButton>
-            )}
-            <ActionButton onClick={() => setDialog("edit")}>Edit</ActionButton>
-            <ActionButton tone="danger" onClick={() => setDialog("delete")}>
-              Delete
-            </ActionButton>
           </div>
-        }
-      />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {p.verificationStatus !== "verified" && (
+            <ActionButton icon={ICONS.success} tone="primary" onClick={() => setDialog("verify")}>
+              Verify
+            </ActionButton>
+          )}
+          {p.verificationStatus !== "rejected" && (
+            <ActionButton icon={ICONS.close} tone="danger" onClick={() => setDialog("reject")}>
+              Reject
+            </ActionButton>
+          )}
+          <ActionButton icon={ICONS.edit} onClick={() => setDialog("edit")}>
+            Edit
+          </ActionButton>
+          <ActionButton icon={ICONS.delete} tone="danger" onClick={() => setDialog("delete")}>
+            Delete
+          </ActionButton>
+        </div>
+      </div>
+
       {flash && <Flash {...flash} onDismiss={() => setFlash(undefined)} />}
 
-      <h2 className="text-[22px] leading-[30px] font-semibold text-text-primary">Contact</h2>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Rating" value={p.totalReviews ? p.averageRating.toFixed(1) : "—"} caption={`${p.totalReviews} reviews`} />
+        <StatCard label="Experience" value={p.yearsOfExperience != null ? `${p.yearsOfExperience} yrs` : "—"} />
+        <StatCard label="People served" value={p.experienceCount != null ? p.experienceCount.toLocaleString("en-IN") : "—"} />
+        <StatCard label="Commission" value={`${p.commissionRatePercent}%`} />
+      </div>
+
       <DetailList
+        title="Contact"
         rows={[
           { label: "Contact person", value: displayName(p) },
           { label: "Email", value: p.email },
@@ -79,12 +92,11 @@ export function ProviderAdminDetail({ id }: { id: number }) {
           { label: "Provider ID / user ID", value: `#${p.id} / #${p.userId}` },
         ]}
       />
-
-      <h2 className="text-[22px] leading-[30px] font-semibold text-text-primary">Listing</h2>
       <DetailList
+        title="Listing"
         rows={[
           { label: "City", value: p.city || null },
-          { label: "Pincodes served", value: p.pincodes.length ? p.pincodes.join(", ") : null },
+          { label: "Pincodes served", value: p.pincodes?.length ? p.pincodes.join(", ") : null },
           { label: "Registered address", value: p.registeredAddress },
           {
             label: "Website",
@@ -94,12 +106,8 @@ export function ProviderAdminDetail({ id }: { id: number }) {
               </a>
             ) : null,
           },
-          { label: "Years of experience", value: p.yearsOfExperience?.toString() ?? null },
-          { label: "Rating", value: p.totalReviews ? `${p.averageRating.toFixed(1)} from ${p.totalReviews} reviews` : "No reviews yet" },
           { label: "Accepting new requests", value: p.isAvailable ? "Yes" : "No" },
           { label: "Beds available", value: p.bedsAvailable ? "Yes" : "No" },
-          { label: "Commission", value: `${p.commissionRatePercent}%` },
-          { label: "Joined", value: formatDate(p.createdAt) },
           { label: "About", value: p.aboutText },
         ]}
       />

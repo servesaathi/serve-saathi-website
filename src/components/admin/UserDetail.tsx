@@ -6,7 +6,7 @@ import { BackLink } from "@/components/services/BackLink";
 import { USER_WRITE_UNSUPPORTED, adminSource, displayName, useAdminQuery } from "@/lib/admin";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { UserFormModal } from "./UserFormModal";
-import { ActionButton, DetailList, Flash, PageHeader, formatDate } from "./parts";
+import { ActionButton, DetailList, Flash, ICONS, Identity, formatDate } from "./parts";
 import { RoleList, UserStatus } from "./UsersScreen";
 
 // /admin/users/[id] — GET /users/{id} plus the same actions as the list row.
@@ -31,36 +31,58 @@ export function UserDetail({ id }: { id: number }) {
   const name = displayName(user);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <BackLink href="/admin/users" label="All users" />
-      <PageHeader
-        title={name}
-        description={<UserStatus user={user} />}
-        action={
-          <div className="flex flex-wrap gap-2">
-            <ActionButton onClick={() => setDialog("edit")} disabled={!users.update} title={users.update ? undefined : USER_WRITE_UNSUPPORTED}>
-              Edit
-            </ActionButton>
-            <ActionButton tone="danger" onClick={() => setDialog("ban")}>
-              {user.isBanned ? "Unban" : "Ban"}
-            </ActionButton>
-            <ActionButton tone="danger" onClick={() => setDialog("delete")} disabled={!users.remove} title={users.remove ? undefined : USER_WRITE_UNSUPPORTED}>
-              Delete
-            </ActionButton>
+
+      <div className="flex flex-col gap-5 rounded-card bg-bg-base p-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3">
+          <Identity name={name} sub={`User #${user.id} · joined ${formatDate(user.createdAt)}`} />
+          <div className="flex flex-wrap items-center gap-2">
+            <UserStatus user={user} />
+            <RoleList roles={user.roles} />
           </div>
-        }
-      />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ActionButton
+            icon={ICONS.edit}
+            onClick={() => setDialog("edit")}
+            disabled={!users.update}
+            title={users.update ? undefined : USER_WRITE_UNSUPPORTED}
+          >
+            Edit
+          </ActionButton>
+          <ActionButton icon={user.isBanned ? ICONS.success : ICONS.close} tone={user.isBanned ? "default" : "danger"} onClick={() => setDialog("ban")}>
+            {user.isBanned ? "Unban" : "Ban"}
+          </ActionButton>
+          <ActionButton
+            icon={ICONS.delete}
+            tone="danger"
+            onClick={() => setDialog("delete")}
+            disabled={!users.remove}
+            title={users.remove ? undefined : USER_WRITE_UNSUPPORTED}
+          >
+            Delete
+          </ActionButton>
+        </div>
+      </div>
+
       {flash && <Flash message={flash} tone="success" onDismiss={() => setFlash(undefined)} />}
 
       <DetailList
+        title="Contact"
         rows={[
-          { label: "User ID", value: `#${user.id}` },
-          { label: "Roles", value: <RoleList roles={user.roles} /> },
           { label: "Email", value: user.email },
           {
             label: "Mobile",
             value: user.phone ? `${user.phone} ${user.phoneVerifiedAt ? "(verified)" : "(not verified)"}` : null,
           },
+        ]}
+      />
+      <DetailList
+        title="Account"
+        rows={[
+          { label: "User ID", value: `#${user.id}` },
+          { label: "Roles", value: <RoleList roles={user.roles} /> },
           { label: "Account active", value: user.isActive ? "Yes" : "No" },
           { label: "Banned", value: user.isBanned ? "Yes" : "No" },
           { label: "Joined", value: formatDate(user.createdAt) },

@@ -143,7 +143,7 @@ export function ProviderEditModal({
   const [v, setV] = useState({
     legalName: provider.legalName ?? "",
     city: provider.city ?? "",
-    pincodes: provider.pincodes.join(", "),
+    pincodes: (provider.pincodes ?? []).join(", "),
     registeredAddress: provider.registeredAddress ?? "",
     websiteUrl: provider.websiteUrl ?? "",
     yearsOfExperience: provider.yearsOfExperience?.toString() ?? "",
