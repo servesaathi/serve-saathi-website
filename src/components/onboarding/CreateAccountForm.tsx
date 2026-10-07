@@ -1,18 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { authService, getErrorMessage } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { ConsentNotice } from "@/components/ui/ConsentNotice";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { TextInput } from "@/components/ui/TextInput";
+import { recordConsent } from "@/lib/consent";
 import useAuthStore from "@/store/auth.store";
 import { useOnboardingStore } from "@/store/onboarding.store";
 
 // Right-hand column of "Create an account" — Figma node 1875:27374.
+// DPDP: the design's passive "By continuing, you agree…" line is replaced by
+// an explicit notice + un-ticked consent checkbox that gates submit.
 
-type Errors = Partial<Record<"firstName" | "lastName" | "email" | "password" | "confirm", string>>;
+type Errors = Partial<Record<"firstName" | "lastName" | "email" | "password" | "confirm" | "consent", string>>;
+
+const DATA_ITEMS = ["First and last name", "Email address", "Mobile number (already verified)", "Password (stored encrypted)"];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -21,6 +26,7 @@ export function CreateAccountForm() {
   const phone = useOnboardingStore((s) => s.phone);
   const role = useOnboardingStore((s) => s.role);
   const phoneVerificationToken = useOnboardingStore((s) => s.phoneVerificationToken);
+  const returnTo = useOnboardingStore((s) => s.returnTo);
   const resetOnboarding = useOnboardingStore((s) => s.reset);
   const setSession = useAuthStore((s) => s.setSession);
 
@@ -31,6 +37,7 @@ export function CreateAccountForm() {
     password: "",
     confirm: "",
   });
+  const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
@@ -52,6 +59,7 @@ export function CreateAccountForm() {
     if (!EMAIL_RE.test(values.email)) next.email = "Enter a valid email address.";
     if (values.password.length < 8) next.password = "Use at least 8 characters.";
     if (values.confirm !== values.password) next.confirm = "Passwords don't match.";
+    if (!consent) next.consent = "Please read the notice and tick the box to create your account.";
     return next;
   }
 
@@ -64,6 +72,8 @@ export function CreateAccountForm() {
     setFormError(undefined);
     setSubmitting(true);
     try {
+      // TODO(backend): send this record with register() once the API accepts it.
+      recordConsent("account-creation", DATA_ITEMS);
       const { accessToken, user } = await authService.register({
         email: values.email.trim(),
         password: values.password,
@@ -75,7 +85,7 @@ export function CreateAccountForm() {
       });
       setSession(accessToken, user);
       resetOnboarding();
-      router.push("/create-profile");
+      router.push(returnTo ?? "/create-profile");
     } catch (err) {
       setFormError(getErrorMessage(err));
     } finally {
@@ -127,17 +137,16 @@ export function CreateAccountForm() {
           error={errors.confirm}
         />
 
-        <p className="text-[13px] leading-[17px] text-text-primary">
-          By continuing, you agree to ServeSaathi&apos;s{" "}
-          <Link href="/terms" className="text-primary hover:underline">
-            Terms &amp; Conditions
-          </Link>{" "}
-          and{" "}
-          <Link href="/privacy" className="text-primary hover:underline">
-            Privacy Policy
-          </Link>
-          .
-        </p>
+        <ConsentNotice
+          dataItems={DATA_ITEMS}
+          purpose="create and run your ServeSaathi account, show you care providers that match your needs, and contact you about requests you make."
+          checked={consent}
+          onChange={(v) => {
+            setConsent(v);
+            setErrors((prev) => ({ ...prev, consent: undefined }));
+          }}
+          error={errors.consent}
+        />
 
         {formError && <p className="text-[13px] leading-[17px] text-error">{formError}</p>}
       </div>

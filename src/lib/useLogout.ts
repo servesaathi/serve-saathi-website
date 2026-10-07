@@ -5,8 +5,8 @@ import { authService } from "@/lib/api";
 import useAuthStore from "@/store/auth.store";
 
 // Shared logout: best-effort server-side invalidation, then clear the local
-// session and return to the landing page.
-export function useLogout() {
+// session and return to the landing page (or `redirectTo`, e.g. /admin/login).
+export function useLogout(redirectTo = "/") {
   const router = useRouter();
   const clearSession = useAuthStore((s) => s.logout);
 
@@ -17,7 +17,7 @@ export function useLogout() {
       // Session may already be gone / offline — clearing locally is enough.
     }
     clearSession();
-    router.push("/");
+    router.push(redirectTo);
   };
 }
 

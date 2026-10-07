@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { authService, getErrorMessage } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { ConsentNotice } from "@/components/ui/ConsentNotice";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { TextInput } from "@/components/ui/TextInput";
 import { FormField, isWideField, OptionCard } from "@/components/provider/FormField";
@@ -23,6 +24,7 @@ import {
   visibleSections,
   type Answers,
 } from "@/lib/provider-onboarding";
+import { recordConsent } from "@/lib/consent";
 import useAuthStore from "@/store/auth.store";
 
 // Provider onboarding, as a full-window stepper: account → category → one
@@ -53,11 +55,18 @@ function loadDraft(): Draft {
   }
 }
 
+const ACCOUNT_DATA_ITEMS = ["First and last name", "Email", "Mobile number (if given)", "Password (stored encrypted)"];
+const APPLICATION_DATA_ITEMS = [
+  "Everything entered in this application, including contact-person details and any documents or registration numbers",
+];
+
 function submitApplication(category: string, answers: Answers) {
+  // TODO(backend): send this record with the application once an endpoint exists.
+  const consent = recordConsent("provider-application", APPLICATION_DATA_ITEMS);
   try {
     window.localStorage.setItem(
       `${STORAGE_KEY}-submitted`,
-      JSON.stringify({ category, answers, submittedAt: new Date().toISOString() })
+      JSON.stringify({ category, answers, consent, submittedAt: new Date().toISOString() })
     );
     window.localStorage.removeItem(STORAGE_KEY);
   } catch {
@@ -83,7 +92,8 @@ const FIELD_GRID = "grid gap-x-6 gap-y-6 md:grid-cols-2";
 function AccountStep() {
   const setSession = useAuthStore((s) => s.setSession);
   const [v, setV] = useState({ firstName: "", lastName: "", email: "", phone: "", password: "" });
-  const [errors, setErrors] = useState<Partial<Record<keyof typeof v, string>>>({});
+  const [consent, setConsent] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof typeof v | "consent", string>>>({});
   const [formError, setFormError] = useState<string>();
   const [busy, setBusy] = useState(false);
 
@@ -105,12 +115,14 @@ function AccountStep() {
     const phoneErr = mobileError(v.phone);
     if (phoneErr) errs.phone = phoneErr;
     if (v.password.length < 8) errs.password = "Use at least 8 characters.";
+    if (!consent) errs.consent = "Please read the notice and tick the box to continue.";
     setErrors(errs);
     if (Object.keys(errs).length) return;
 
     setBusy(true);
     setFormError(undefined);
     try {
+      recordConsent("account-creation", ACCOUNT_DATA_ITEMS);
       const phone = toE164(v.phone);
       const { accessToken, user } = await authService.register({
         firstName: v.firstName.trim(),
@@ -150,6 +162,16 @@ function AccountStep() {
         <TextInput label="Mobile number" type="tel" autoComplete="tel" placeholder="10-digit mobile number" helperText="Optional. Indian mobile numbers only." inputMode="tel" value={v.phone} onChange={(e) => set("phone")({ target: { value: sanitizePhoneInput(e.target.value) } })} onBlur={blurCheck("phone")} error={errors.phone} />
         <PasswordInput label="Password" requiredMark autoComplete="new-password" placeholder="At least 8 characters" value={v.password} onChange={set("password")} error={errors.password} />
       </div>
+      <ConsentNotice
+        dataItems={ACCOUNT_DATA_ITEMS}
+        purpose="create your provider account, sign you in, and contact you about your listing."
+        checked={consent}
+        onChange={(c) => {
+          setConsent(c);
+          setErrors((p) => ({ ...p, consent: undefined }));
+        }}
+        error={errors.consent}
+      />
       {formError && (
         <p role="alert" className="text-[14px] leading-5 text-error">
           {formError}
@@ -187,6 +209,8 @@ function Flow() {
   const [step, setStep] = useState(draft.step ?? 0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [categoryError, setCategoryError] = useState(false);
+  const [applicationConsent, setApplicationConsent] = useState(false);
+  const [applicationConsentError, setApplicationConsentError] = useState<string>();
 
   // Signed-out visitors always land on account creation; the rest of the
   // flow resumes wherever they were once a session exists.
@@ -251,6 +275,10 @@ function Flow() {
         setStage("form");
         return;
       }
+    }
+    if (!applicationConsent) {
+      setApplicationConsentError("Please read the notice and tick the box to submit your application.");
+      return;
     }
     if (category) submitApplication(category, answers);
     setStage("done");
@@ -411,6 +439,17 @@ function Flow() {
             </dl>
           </section>
         ))}
+        <ConsentNotice
+          dataItems={APPLICATION_DATA_ITEMS}
+          purpose="verify your organisation, list it on ServeSaathi so families can discover you, and contact you about your listing."
+          sharedWith="families who view your listing (your public profile details only — never your documents or personal IDs)."
+          checked={applicationConsent}
+          onChange={(c) => {
+            setApplicationConsent(c);
+            if (c) setApplicationConsentError(undefined);
+          }}
+          error={applicationConsentError}
+        />
       </StageLayout>
     );
   } else {

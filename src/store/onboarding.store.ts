@@ -14,10 +14,19 @@ interface OnboardingState {
   phone: string | null;
   /** Returned by verifyOtp for a new user; passed to register(). */
   phoneVerificationToken: string | null;
+  /** Same-origin path to land on after sign-in (e.g. back to /services after "Unlock"). */
+  returnTo: string | null;
   setRole: (role: ApiRole) => void;
   setPhone: (phone: string) => void;
   setPhoneVerificationToken: (token: string | null) => void;
+  setReturnTo: (path: string | null) => void;
   reset: () => void;
+}
+
+/** Only same-origin absolute paths — never `//evil.com` or `https://…` (open redirect). */
+export function safeReturnPath(path: string | null | undefined): string | null {
+  if (!path || !path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) return null;
+  return path;
 }
 
 const noopStorage = {
@@ -32,10 +41,12 @@ export const useOnboardingStore = create<OnboardingState>()(
       role: null,
       phone: null,
       phoneVerificationToken: null,
+      returnTo: null,
       setRole: (role) => set({ role }),
       setPhone: (phone) => set({ phone }),
       setPhoneVerificationToken: (phoneVerificationToken) => set({ phoneVerificationToken }),
-      reset: () => set({ role: null, phone: null, phoneVerificationToken: null }),
+      setReturnTo: (returnTo) => set({ returnTo: safeReturnPath(returnTo) }),
+      reset: () => set({ role: null, phone: null, phoneVerificationToken: null, returnTo: null }),
     }),
     {
       name: "servesaathi-onboarding",

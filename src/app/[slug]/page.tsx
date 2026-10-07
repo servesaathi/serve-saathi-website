@@ -11,7 +11,6 @@ const COMING_SOON: Record<string, { title: string; module: string }> = {
   payment: { title: "Payment", module: "Payment module" },
   community: { title: "Community & Resources", module: "Community & Resources module" },
   provider: { title: "Provider Dashboard", module: "Provider dashboard" },
-  admin: { title: "Admin Console", module: "Admin console" },
   notifications: { title: "Notifications", module: "Notification Center module" },
 };
 

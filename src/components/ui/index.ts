@@ -1,5 +1,6 @@
 export * from "./Avatar";
 export * from "./Button";
+export * from "./ConsentNotice";
 export * from "./IconCard";
 export * from "./Logo";
 export * from "./OrganizationCard";

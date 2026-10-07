@@ -1,14 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import Link from "next/link";
+import { CompareToggle } from "./CompareToggle";
 import type { Provider } from "./data";
 
 // Figma node 3316:43598 "Provider Card" (named "Compare Pop Up Card" in its
 // component definition).
 export function ProviderCard({ provider }: { provider: Provider }) {
-  const [compare, setCompare] = useState(false);
-
   return (
     <div className="relative flex w-full flex-col items-start">
       <div className="relative h-[120px] w-full overflow-hidden rounded-t-card bg-border-card">
@@ -52,25 +51,13 @@ export function ProviderCard({ provider }: { provider: Provider }) {
         </div>
 
         <div className="flex w-full items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setCompare((v) => !v)}
-            aria-pressed={compare}
-            className="flex items-center gap-1"
-          >
-            <span
-              className={`flex size-5 items-center justify-center rounded-[6px] border-2 border-primary ${
-                compare ? "bg-primary" : "bg-bg-base"
-              }`}
-            />
-            <span className="text-[18px] leading-7 text-text-tertiary">Compare</span>
-          </button>
-          <button
-            type="button"
-            className="flex h-8 items-center rounded-control bg-primary px-4 text-[14px] leading-5 text-white transition-colors hover:bg-primary-pressed"
+          <CompareToggle providerId={provider.id} labelClassName="text-text-tertiary" />
+          <Link
+            href={`/services/${provider.id}`}
+            className="flex h-8 items-center rounded-control bg-primary px-4 text-[14px] leading-5 text-white transition-colors hover:bg-primary-pressed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             See details
-          </button>
+          </Link>
         </div>
       </div>
 

@@ -238,7 +238,7 @@ export function Sidebar() {
             style={{ backgroundImage: "url('/images/homepage/create-account-card-pattern.svg')" }}
           >
             <p className="text-[16px] leading-6 text-white">
-              New to Serve Saathi? Create a free account to save providers and track bookings
+              New to Serve Saathi? Create a free account to save providers and track your callback requests
             </p>
             <Link
               href="/join"

@@ -2,35 +2,50 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { authService, getErrorMessage } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { ConsentNotice } from "@/components/ui/ConsentNotice";
 import { PhoneInput } from "@/components/ui/PhoneInput";
+import { recordConsent } from "@/lib/consent";
 import { useOnboardingStore } from "@/store/onboarding.store";
 
 // Right-hand column of "Mobile Phone Verify" — Figma node 1867:16828.
 // Collects the mobile number, calls authService.requestOtp, then moves to the
-// OTP step.
+// OTP step. DPDP: the OTP isn't requested until the consent box is ticked.
+// `?next=/path` (e.g. from the Explore Services "Unlock" gate) is remembered
+// so the person lands back where they were once verified.
 
 export function PhoneVerifyForm() {
   const router = useRouter();
   const role = useOnboardingStore((s) => s.role);
   const setPhone = useOnboardingStore((s) => s.setPhone);
+  const setReturnTo = useOnboardingStore((s) => s.setReturnTo);
   const [digits, setDigits] = useState("");
   const [error, setError] = useState<string>();
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
+
+  // Read directly (not useSearchParams) so the page needs no Suspense boundary.
+  useEffect(() => {
+    setReturnTo(new URLSearchParams(window.location.search).get("next"));
+  }, [setReturnTo]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const clean = digits.replace(/\D/g, "");
-    if (clean.length !== 10) {
-      setError("Enter a valid 10-digit mobile number.");
-      return;
-    }
+    const phoneError = clean.length !== 10 ? "Enter a valid 10-digit mobile number." : undefined;
+    const missingConsent = consent ? undefined : "Please read the notice and tick the box to continue.";
+    setError(phoneError);
+    setConsentError(missingConsent);
+    if (phoneError || missingConsent) return;
+
     const phone = `+91${clean}`;
-    setError(undefined);
     setSubmitting(true);
     try {
+      // TODO(backend): send this record with requestOtp once the API accepts it.
+      recordConsent("phone-verification", ["Mobile number"]);
       await authService.requestOtp({ phone, role: role ?? "customer" });
       setPhone(phone);
       router.push("/verify-otp");
@@ -48,12 +63,22 @@ export function PhoneVerifyForm() {
           Create profiles for the seniors you care about and begin their journey with us.
         </p>
 
-        <div className="w-full max-w-[400px]">
+        <div className="flex w-full max-w-[400px] flex-col gap-6">
           <PhoneInput
             value={digits}
             onChange={(e) => setDigits(e.target.value)}
             error={error}
             maxLength={12}
+          />
+          <ConsentNotice
+            dataItems={["Mobile number"]}
+            purpose="send you a one-time password, verify it's you, and sign you in or create your account."
+            checked={consent}
+            onChange={(v) => {
+              setConsent(v);
+              if (v) setConsentError(undefined);
+            }}
+            error={consentError}
           />
         </div>
 

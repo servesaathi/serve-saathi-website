@@ -26,6 +26,8 @@ export function OtpVerifyForm() {
   const phone = useOnboardingStore((s) => s.phone);
   const role = useOnboardingStore((s) => s.role);
   const setPhoneVerificationToken = useOnboardingStore((s) => s.setPhoneVerificationToken);
+  const returnTo = useOnboardingStore((s) => s.returnTo);
+  const setReturnTo = useOnboardingStore((s) => s.setReturnTo);
   const setSession = useAuthStore((s) => s.setSession);
 
   const [code, setCode] = useState("");
@@ -56,7 +58,8 @@ export function OtpVerifyForm() {
       } else if (result.accessToken && result.user) {
         // Phone already belongs to an account — this call logged them in.
         setSession(result.accessToken, result.user);
-        router.push("/dashboard");
+        setReturnTo(null);
+        router.push(returnTo ?? "/dashboard");
       } else {
         setError("Something went wrong verifying that code. Please try again.");
       }
