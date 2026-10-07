@@ -57,13 +57,13 @@ export function PhoneVerifyForm() {
   }
 
   return (
-    <div className="flex w-full max-w-[600px] flex-col items-center gap-12">
-      <form onSubmit={handleSubmit} className="flex w-full flex-col items-center gap-8 px-6">
+    <div className="flex w-full max-w-[600px] flex-col items-center gap-8">
+      <form onSubmit={handleSubmit} className="flex w-full flex-col items-center gap-6 px-6">
         <p className="max-w-[456px] text-center text-[18px] leading-[22px] text-text-secondary">
           Create profiles for the seniors you care about and begin their journey with us.
         </p>
 
-        <div className="flex w-full max-w-[400px] flex-col gap-6">
+        <div className="flex w-full max-w-[400px] flex-col gap-5">
           <PhoneInput
             value={digits}
             onChange={(e) => setDigits(e.target.value)}
@@ -87,7 +87,7 @@ export function PhoneVerifyForm() {
         </Button>
       </form>
 
-      <div className="flex w-full max-w-[400px] flex-col items-stretch gap-4 pt-24">
+      <div className="flex w-full max-w-[400px] flex-col items-stretch gap-3 px-6 sm:px-0">
         <div className="flex items-center gap-4">
           <span className="h-px flex-1 bg-border-hairline" />
           <span className="text-[16px] leading-[22px] font-semibold text-text-secondary">OR</span>

@@ -6,12 +6,15 @@ import { MAX_COMPARE } from "@/components/services/data";
 // Feeds the bottom CompareBar (Figma "02b_Homepage / Explore Service -
 // Compare 1/2/3", nodes 3318:89060 / 3318:92478 / 3318:93597). Persisted to
 // sessionStorage so the selection survives moving between the listing,
-// a detail page and the compare table.
+// a detail page and the compare table. Each entry keeps the provider's name
+// so the CompareBar can label its slots without refetching every profile.
+
+export type CompareItem = { id: string; name: string };
 
 interface CompareState {
-  ids: string[];
-  /** Adds or removes `id`. Adding past MAX_COMPARE is a no-op — returns false. */
-  toggle: (id: string) => boolean;
+  items: CompareItem[];
+  /** Adds or removes `item`. Adding past MAX_COMPARE is a no-op — returns false. */
+  toggle: (item: CompareItem) => boolean;
   remove: (id: string) => void;
   clear: () => void;
 }
@@ -25,22 +28,22 @@ const noopStorage = {
 export const useCompareStore = create<CompareState>()(
   persist(
     (set, get) => ({
-      ids: [],
-      toggle: (id) => {
-        const { ids } = get();
-        if (ids.includes(id)) {
-          set({ ids: ids.filter((x) => x !== id) });
+      items: [],
+      toggle: (item) => {
+        const { items } = get();
+        if (items.some((x) => x.id === item.id)) {
+          set({ items: items.filter((x) => x.id !== item.id) });
           return true;
         }
-        if (ids.length >= MAX_COMPARE) return false;
-        set({ ids: [...ids, id] });
+        if (items.length >= MAX_COMPARE) return false;
+        set({ items: [...items, { id: item.id, name: item.name }] });
         return true;
       },
-      remove: (id) => set({ ids: get().ids.filter((x) => x !== id) }),
-      clear: () => set({ ids: [] }),
+      remove: (id) => set({ items: get().items.filter((x) => x.id !== id) }),
+      clear: () => set({ items: [] }),
     }),
     {
-      name: "servesaathi-compare",
+      name: "servesaathi-compare-v2",
       storage: createJSONStorage(() =>
         typeof window !== "undefined" ? window.sessionStorage : noopStorage
       ),

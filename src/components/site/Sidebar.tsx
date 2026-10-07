@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
+import { useCategories } from "@/lib/useCategories";
 import { useLogout } from "@/lib/useLogout";
 import useAuthStore from "@/store/auth.store";
 
@@ -31,16 +32,9 @@ const TRAILING = [
 
 // Figma "Sidebar - My Care" instance on the Explore Service page
 // (node 3388:82692, child I3388:82692;2649:3024 "Expand On") — Explore
-// Services opens into these six category filters, first one carrying the
-// active-item dot when its slug matches ?category=.
-const SERVICE_CATEGORIES = [
-  { label: "Care Facilities", slug: "care-facilities" },
-  { label: "Care Services", slug: "care-services" },
-  { label: "Health & Wellness", slug: "health-wellness" },
-  { label: "Legal & Financial", slug: "legal-financial" },
-  { label: "Daily Living & Lifestyle", slug: "daily-living-lifestyle" },
-  { label: "Family Support", slug: "family-support" },
-];
+// Services opens into the category filters, the one matching ?category=
+// carrying the active-item dot. Categories are live (GET /categories via
+// useCategories), not the Figma frame's placeholder labels.
 
 // Figma "Sidebar - My Care" instance on "01a_MyCare / Overview" (node
 // 3355:416665) — the signed-in sidebar is a different, flatter nav
@@ -55,13 +49,39 @@ const SIGNED_IN_NAV = [
   { label: "Payment", href: "/payment" },
 ];
 
+// Only this submenu reads ?category=, so only it sits behind a Suspense
+// boundary — the rest of the sidebar still prerenders on static pages.
+function ServicesSubmenu({ onServices }: { onServices: boolean }) {
+  const activeCategory = useSearchParams().get("category");
+  const { categories = [] } = useCategories();
+
+  return (
+    <div id="sidebar-explore-services-submenu" className="flex w-full flex-col gap-1.5 pl-4">
+      {categories.map((category) => {
+        const active = onServices && activeCategory === category.slug;
+        return (
+          <Link
+            key={category.id}
+            href={`/services?category=${category.slug}`}
+            aria-current={active ? "page" : undefined}
+            className="flex items-center gap-2 py-1.5 text-[18px] leading-7 text-[#e8e8e8] hover:text-white"
+          >
+            {category.name}
+            {active && (
+              <Image src="/icons/homepage/submenu-active-dot.svg" alt="" width={8} height={8} aria-hidden />
+            )}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const logout = useLogout();
   const onServices = pathname === "/services";
-  const activeCategory = searchParams.get("category") ?? (onServices ? SERVICE_CATEGORIES[0].slug : null);
   const [servicesOpen, setServicesOpen] = useState(onServices);
 
   if (user) {
@@ -179,29 +199,9 @@ export function Sidebar() {
                 </button>
               </div>
               {servicesOpen && (
-                <div id="sidebar-explore-services-submenu" className="flex w-full flex-col gap-1.5 pl-4">
-                  {SERVICE_CATEGORIES.map((category) => {
-                    const active = onServices && activeCategory === category.slug;
-                    return (
-                      <Link
-                        key={category.slug}
-                        href={`/services?category=${category.slug}`}
-                        className="flex items-center gap-2 py-1.5 text-[18px] leading-7 text-[#e8e8e8] hover:text-white"
-                      >
-                        {category.label}
-                        {active && (
-                          <Image
-                            src="/icons/homepage/submenu-active-dot.svg"
-                            alt=""
-                            width={8}
-                            height={8}
-                            aria-hidden
-                          />
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
+                <Suspense fallback={null}>
+                  <ServicesSubmenu onServices={onServices} />
+                </Suspense>
               )}
             </div>
 

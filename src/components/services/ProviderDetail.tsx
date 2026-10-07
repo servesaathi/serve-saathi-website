@@ -6,16 +6,22 @@ import { useState, type ReactNode } from "react";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { CompareToggle } from "./CompareToggle";
 import { FavoriteButton } from "./FavoriteButton";
+import { Avatar } from "@/components/ui/Avatar";
 import { RatingStars } from "./RatingStars";
-import { AVAILABILITY, FAQS, REVIEWS, directionsUrl, type Provider } from "./data";
+import { YourReview } from "./YourReview";
+import { PLACEHOLDER_GALLERY, directionsUrl, type Availability, type Provider, type Review } from "./data";
 
 // "02c_Homepage / Explore Service - Service Detail (About)" — Figma
 // 3337:163900 — and "(Review)" — 3337:166010. The design's third CTA,
 // "Book", is intentionally gone: ServeSaathi is a discovery platform, so the
 // only actions are "Request a Callback" (handed to the provider) and "Visit
 // Website" (the provider's own site).
+//
+// Content comes from GET /services/providers/{id}/profile (+ availability and
+// reviews). Sections the provider hasn't filled in yet are hidden rather than
+// shown empty.
 
-const GALLERY = ["/images/services/provider-hero.jpg", "/images/services/provider-photo-1.jpg"];
+const GALLERY = PLACEHOLDER_GALLERY;
 
 type Tab = "about" | "review";
 
@@ -32,59 +38,93 @@ function Chip({ children }: { children: ReactNode }) {
 }
 
 function AboutTab({ provider }: { provider: Provider }) {
+  const pricedServices = provider.services.filter((s) => s.price);
+  const empty =
+    !provider.about &&
+    !provider.keyFacts.length &&
+    !provider.programs.length &&
+    !provider.services.length &&
+    !provider.recognitions.length;
+
+  if (empty) {
+    return (
+      <p className="text-[18px] leading-7 text-text-secondary">
+        {provider.name} hasn&apos;t added details about their facility yet. Request a callback to ask them directly.
+      </p>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3">
-        <SectionTitle>About the facility</SectionTitle>
-        <p className="text-[18px] leading-7 text-text-secondary">{provider.about}</p>
-        <div className="pt-3 text-[18px] leading-7 text-text-secondary">
-          <p className="font-semibold text-text-primary">Key facts:</p>
-          <ul className="list-disc pl-6">
-            {provider.keyFacts.map((fact) => (
-              <li key={fact}>{fact}</li>
+      {(provider.about || provider.keyFacts.length > 0) && (
+        <section className="flex flex-col gap-3">
+          <SectionTitle>About the facility</SectionTitle>
+          {provider.about && <p className="text-[18px] leading-7 text-text-secondary">{provider.about}</p>}
+          {provider.keyFacts.length > 0 && (
+            <div className="pt-3 text-[18px] leading-7 text-text-secondary">
+              <p className="font-semibold text-text-primary">Key facts:</p>
+              <ul className="list-disc pl-6">
+                {provider.keyFacts.map((fact) => (
+                  <li key={fact}>{fact}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+
+      {provider.programs.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <SectionTitle>Programs &amp; Initiatives</SectionTitle>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {provider.programs.map((item, i) => (
+              <Chip key={`${item}-${i}`}>{item}</Chip>
             ))}
           </ul>
-        </div>
-      </section>
+        </section>
+      )}
 
-      <section className="flex flex-col gap-3">
-        <SectionTitle>Programs &amp; Initiatives</SectionTitle>
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {provider.initiatives.map((item, i) => (
-            <Chip key={`${item}-${i}`}>{item}</Chip>
-          ))}
-        </ul>
-      </section>
+      {provider.services.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <SectionTitle>Services Provided</SectionTitle>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {provider.services.map((item, i) => (
+              <Chip key={`${item.name}-${i}`}>{item.name}</Chip>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      <section className="flex flex-col gap-3">
-        <SectionTitle>Services Provided</SectionTitle>
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {provider.servicesOffered.map((item, i) => (
-            <Chip key={`${item}-${i}`}>{item}</Chip>
-          ))}
-        </ul>
-      </section>
+      {provider.recognitions.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <SectionTitle>Recognitions &amp; Accreditations</SectionTitle>
+          <ul className="flex flex-col gap-3">
+            {provider.recognitions.map((item) => (
+              <li key={item.title} className="rounded-card bg-bg-base px-4 py-2 text-[16px] leading-[22px] text-text-tertiary">
+                {item.title}
+                {item.description && <span className="block text-[14px] leading-5 text-text-muted">{item.description}</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      <section className="flex flex-col gap-3">
-        <SectionTitle>Recognitions &amp; Accreditations</SectionTitle>
-        <ul className="flex flex-col gap-3">
-          {provider.recognitions.map((item) => (
-            <li key={item} className="rounded-card bg-bg-base px-4 py-2 text-[16px] leading-[22px] text-text-tertiary">
-              {item}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <SectionTitle>Pricing</SectionTitle>
-        <p className="rounded-card bg-bg-base px-4 py-3 text-[16px] leading-[22px] whitespace-pre-line text-text-tertiary">
-          {provider.pricing}
-        </p>
-        <p className="text-[14px] leading-5 text-text-tertiary">
-          Prices are indicative and set by the provider — confirm them directly when they call you back.
-        </p>
-      </section>
+      {pricedServices.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <SectionTitle>Pricing</SectionTitle>
+          <dl className="flex flex-col divide-y divide-border-hairline rounded-card bg-bg-base px-4 text-[16px] leading-[22px] text-text-tertiary">
+            {pricedServices.map((s, i) => (
+              <div key={`${s.name}-${i}`} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
+                <dt className="text-text-secondary">{s.name}</dt>
+                <dd className="font-semibold text-text-secondary">{s.price}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="text-[14px] leading-5 text-text-tertiary">
+            Prices are indicative and set by the provider — confirm them directly when they call you back.
+          </p>
+        </section>
+      )}
     </div>
   );
 }
@@ -117,85 +157,94 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-function ReviewTab({ provider }: { provider: Provider }) {
+function EmptyNote({ children }: { children: ReactNode }) {
+  return <p className="rounded-card bg-bg-base px-4 py-3 text-[18px] leading-7 text-text-tertiary">{children}</p>;
+}
+
+function ReviewTab({
+  provider,
+  availability,
+  reviews,
+}: {
+  provider: Provider;
+  availability: Availability[] | null;
+  reviews: Review[] | null;
+}) {
+  const hasHours = availability?.some((d) => d.hours) ?? false;
+
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-3">
         <SectionTitle>Availability this week</SectionTitle>
-        <dl className="flex flex-col gap-3 text-[18px] leading-7">
-          {AVAILABILITY.map(({ day, hours }) => (
-            <div key={day} className="flex items-center justify-between">
-              <dt className="text-text-secondary">{day}</dt>
-              <dd className={hours ? "text-text-secondary" : "text-tertiary"}>{hours ?? "Not available"}</dd>
-            </div>
-          ))}
-        </dl>
+        {availability === null ? (
+          <EmptyNote>We couldn&apos;t load this provider&apos;s hours right now. Please try again later.</EmptyNote>
+        ) : !hasHours ? (
+          <EmptyNote>{provider.name} hasn&apos;t published their hours yet.</EmptyNote>
+        ) : (
+          <dl className="flex flex-col gap-3 text-[18px] leading-7">
+            {availability.map(({ day, hours }) => (
+              <div key={day} className="flex items-center justify-between gap-4">
+                <dt className="text-text-secondary">{day}</dt>
+                <dd className={`text-right ${hours ? "text-text-secondary" : "text-tertiary"}`}>{hours ?? "Not available"}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </section>
 
       <section className="flex flex-col gap-4">
         <SectionTitle>Recent Feedback</SectionTitle>
-        <ul className="flex flex-col gap-4">
-          {REVIEWS.map((r) => (
-            <li key={r.name} className="flex flex-col gap-3 rounded-card bg-bg-base p-4">
-              <div className="flex items-start gap-2">
-                <Image src={r.avatar} alt="" width={40} height={40} className="size-10 rounded-full" />
-                <div className="flex flex-1 flex-col gap-0.5">
-                  <div className="flex items-start justify-between gap-4">
-                    <p className="text-[18px] leading-7 font-semibold text-text-secondary">{r.name}</p>
-                    <p className="text-right text-[16px] leading-5 text-text-muted">{r.date}</p>
+        <YourReview providerId={provider.id} providerName={provider.name} />
+        {reviews === null ? (
+          <EmptyNote>We couldn&apos;t load reviews right now. Please try again later.</EmptyNote>
+        ) : reviews.length === 0 ? (
+          <EmptyNote>No written reviews yet.</EmptyNote>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {reviews.map((r) => (
+              <li key={r.id} className="flex flex-col gap-3 rounded-card bg-bg-base p-4">
+                <div className="flex items-start gap-2">
+                  <Avatar name={r.name} size={40} />
+                  <div className="flex flex-1 flex-col gap-0.5">
+                    <div className="flex items-start justify-between gap-4">
+                      <p className="text-[18px] leading-7 font-semibold text-text-secondary">{r.name}</p>
+                      <p className="text-right text-[16px] leading-5 text-text-muted">{r.date}</p>
+                    </div>
+                    <RatingStars count={r.stars} />
                   </div>
-                  <RatingStars count={r.stars} />
                 </div>
-              </div>
-              <p className="text-[18px] leading-7 text-text-muted">{r.text}</p>
-            </li>
-          ))}
-        </ul>
+                {r.text && <p className="text-[18px] leading-7 text-text-muted">{r.text}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
-      <section className="flex flex-col gap-4">
-        <SectionTitle>FAQ</SectionTitle>
-        <ul className="flex flex-col gap-4">
-          {FAQS.map((f) => (
-            <FaqItem key={f.question} {...f} />
-          ))}
-        </ul>
-      </section>
-
-      {(provider.phone || provider.email) && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-center text-[24px] leading-8 font-semibold text-text-primary">Contact Information</h2>
-          <div className="flex flex-col gap-3 text-[18px] leading-7 text-text-secondary sm:flex-row sm:gap-20">
-            {provider.phone && (
-              <div className="flex flex-1 items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <Image src="/icons/services/phone.svg" alt="" width={24} height={24} />
-                  Phone
-                </span>
-                <a href={`tel:${provider.phone.replace(/\s/g, "")}`} className="hover:underline">
-                  {provider.phone}
-                </a>
-              </div>
-            )}
-            {provider.email && (
-              <div className="flex flex-1 items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <Image src="/icons/services/email.svg" alt="" width={24} height={24} />
-                  Email
-                </span>
-                <a href={`mailto:${provider.email}`} className="break-all hover:underline">
-                  {provider.email}
-                </a>
-              </div>
-            )}
-          </div>
+      {provider.faqs.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <SectionTitle>FAQ</SectionTitle>
+          <ul className="flex flex-col gap-4">
+            {provider.faqs.map((f) => (
+              <FaqItem key={f.question} {...f} />
+            ))}
+          </ul>
         </section>
       )}
     </div>
   );
 }
 
-export function ProviderDetail({ provider }: { provider: Provider }) {
+export function ProviderDetail({
+  provider,
+  availability,
+  reviews,
+}: {
+  provider: Provider;
+  /** null = the availability request failed (distinct from "none published"). */
+  availability: Availability[] | null;
+  /** null = the reviews request failed (distinct from "no reviews yet"). */
+  reviews: Review[] | null;
+}) {
   const [tab, setTab] = useState<Tab>("about");
   const [slide, setSlide] = useState(0);
 
@@ -231,7 +280,7 @@ export function ProviderDetail({ provider }: { provider: Provider }) {
             <h1 className="font-serif text-[36px] leading-[44px] text-text-primary sm:text-[54px] sm:leading-[60px]">
               {provider.name}
             </h1>
-            <FavoriteButton providerName={provider.name} tone="tertiary" />
+            <FavoriteButton providerId={provider.id} providerName={provider.name} tone="tertiary" />
           </div>
           <p className="max-w-[360px] text-[18px] leading-7 text-text-secondary">{provider.address}</p>
           <a
@@ -244,15 +293,15 @@ export function ProviderDetail({ provider }: { provider: Provider }) {
             Get Directions
           </a>
           <div className="self-start">
-            <CompareToggle providerId={provider.id} />
+            <CompareToggle provider={provider} />
           </div>
         </div>
 
         <dl className="flex items-stretch rounded-card bg-bg-base text-center text-text-secondary">
           {[
-            { value: String(provider.rating), label: "Ratings" },
-            { value: provider.experience, label: "Experience" },
-            { value: provider.visits, label: "Visits done" },
+            { value: provider.reviewCount > 0 ? String(provider.rating) : "New", label: "Ratings" },
+            { value: provider.experience ?? "—", label: "Experience" },
+            { value: provider.visits ?? "—", label: "Visits done" },
           ].map((stat, i) => (
             <div
               key={stat.label}
@@ -277,7 +326,11 @@ export function ProviderDetail({ provider }: { provider: Provider }) {
         />
 
         <div role="tabpanel" aria-label={tab === "about" ? "About" : "Review"}>
-          {tab === "about" ? <AboutTab provider={provider} /> : <ReviewTab provider={provider} />}
+          {tab === "about" ? (
+            <AboutTab provider={provider} />
+          ) : (
+            <ReviewTab provider={provider} availability={availability} reviews={reviews} />
+          )}
         </div>
       </div>
 

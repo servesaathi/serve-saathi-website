@@ -35,6 +35,23 @@ export const ENDPOINTS = {
   categories: {
     list: '/categories',
   },
+  providers: {
+    list: '/providers',
+    /** Public detail-page payload (About tab + services with prices). */
+    profile: (id: string | number) => `/services/providers/${id}/profile`,
+    availability: (id: string | number) => `/providers/${id}/availability`,
+  },
+  reviews: {
+    /** GET = paginated list (public), PUT = create-or-update my review, DELETE = remove my review. */
+    forProvider: (providerId: string | number) => `/reviews/provider/${providerId}`,
+    mine: (providerId: string | number) => `/reviews/provider/${providerId}/me`,
+  },
+  favorites: {
+    /** GET = the signed-in user's saved providers. */
+    list: '/favorites',
+    /** POST = save, DELETE = unsave (both 204). */
+    item: (providerId: string | number) => `/favorites/${providerId}`,
+  },
   pincodes: {
     cities: '/pincodes/cities',
     states: '/pincodes/states',

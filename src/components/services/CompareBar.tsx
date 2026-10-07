@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useHydrated } from "@/lib/useHydrated";
 import { useCompareStore } from "@/store/compare.store";
-import { MAX_COMPARE, getProvider } from "./data";
+import { MAX_COMPARE, PLACEHOLDER_PHOTO } from "./data";
 
 // "Compare Pop up Expand / Desktop" — Figma 3318:91331 (1 selected + 2
 // dashed "Add" slots) / 3318:95038 (3 of 3). Sticks to the bottom of the
@@ -14,13 +14,12 @@ import { MAX_COMPARE, getProvider } from "./data";
 export function CompareBar() {
   const router = useRouter();
   const hydrated = useHydrated();
-  const ids = useCompareStore((s) => s.ids);
+  const providers = useCompareStore((s) => s.items);
   const remove = useCompareStore((s) => s.remove);
   const [expanded, setExpanded] = useState(true);
 
-  if (!hydrated || ids.length === 0) return null;
+  if (!hydrated || providers.length === 0) return null;
 
-  const providers = ids.map(getProvider).filter((p) => p !== undefined);
   const emptySlots = Math.max(0, MAX_COMPARE - providers.length);
   const canCompare = providers.length >= 2;
 
@@ -68,17 +67,8 @@ export function CompareBar() {
         <ul className="flex flex-wrap items-start justify-center gap-x-10 gap-y-4">
           {providers.map((p) => (
             <li key={p.id} className="relative flex w-[100px] flex-col gap-2">
-              <div
-                className="relative h-[100px] w-full overflow-hidden"
-                style={{ background: p.logoBackground ?? "white" }}
-              >
-                <Image
-                  src={p.logo ?? "/images/services/provider-photo-1.jpg"}
-                  alt=""
-                  fill
-                  sizes="100px"
-                  className={p.logo ? "object-contain" : "object-cover"}
-                />
+              <div className="relative h-[100px] w-full overflow-hidden bg-white">
+                <Image src={PLACEHOLDER_PHOTO} alt="" fill sizes="100px" className="object-cover" />
               </div>
               <p className="w-full text-center text-[16px] leading-5 text-text-secondary">{p.name}</p>
               <button

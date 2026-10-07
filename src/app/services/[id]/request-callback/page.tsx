@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { CallbackRequest } from "@/components/services/CallbackRequest";
-import { getProvider } from "@/components/services/data";
+import { loadProvider } from "@/components/services/loadProvider";
 import { SiteShell } from "@/components/site/SiteShell";
 
 // "Request a Callback" for one provider — replaces the design's Book flow
 // (ServeSaathi is discovery-only). See CallbackRequest for the Figma lineage.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const provider = getProvider((await params).id);
-  return { title: provider ? `Request a callback · ${provider.name}` : "Serve Saathi" };
+  const provider = await loadProvider((await params).id);
+  return { title: `Request a callback · ${provider.name}` };
 }
 
 export default async function RequestCallbackPage({ params }: { params: Promise<{ id: string }> }) {
-  const provider = getProvider((await params).id);
-  if (!provider) notFound();
+  const provider = await loadProvider((await params).id);
 
   return (
     <SiteShell>

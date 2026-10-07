@@ -1,37 +1,49 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
 
-// Figma node 3316:43608 "Pagination". Static page set (1, 2, ..., 5, 6) to
-// match the design — real page count depends on a providers API that
-// doesn't exist yet.
-const PAGES = [1, 2, "…", 5, 6] as const;
+// Figma node 3316:43608 "Pagination" ("Back · 1 2 … 5 6 · Next"). Page
+// numbers come from the API's meta.totalPages: first, last and the current
+// page's neighbours are shown, gaps collapse to "…".
+function pageList(page: number, totalPages: number): (number | "…")[] {
+  const keep = new Set([1, totalPages, page - 1, page, page + 1].filter((p) => p >= 1 && p <= totalPages));
+  const sorted = [...keep].sort((a, b) => a - b);
+  return sorted.flatMap((p, i) => (i > 0 && p - sorted[i - 1] > 1 ? ["…" as const, p] : [p]));
+}
 
-export function Pagination() {
-  const [page, setPage] = useState(1);
+export function Pagination({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
 
   return (
-    <div className="flex w-full items-center justify-between">
+    <nav aria-label="Pagination" className="flex w-full items-center justify-between">
       <button
         type="button"
         disabled={page <= 1}
-        onClick={() => setPage((p) => Math.max(1, p - 1))}
-        className="flex h-10 w-[100px] items-center justify-between rounded-control border-[1.35px] border-border-card bg-[#d5e5d6] px-4 text-[16px] font-medium text-primary-pressed disabled:opacity-50"
+        onClick={() => onChange(page - 1)}
+        className="flex h-10 w-[100px] items-center justify-between rounded-control border-[1.35px] border-border-card bg-[#d5e5d6] px-4 text-[16px] font-medium text-primary-pressed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50"
       >
         <Image src="/icons/homepage/explore-pagination-back.svg" alt="" width={24} height={24} aria-hidden />
         Back
       </button>
 
       <div className="flex items-center">
-        {PAGES.map((p, i) =>
+        {pageList(page, totalPages).map((p, i) =>
           typeof p === "number" ? (
             <button
               key={p}
               type="button"
-              onClick={() => setPage(p)}
+              onClick={() => onChange(p)}
               aria-current={page === p ? "page" : undefined}
-              className={`flex size-9 items-center justify-center rounded-full text-[16px] font-semibold ${
+              aria-label={`Page ${p}`}
+              className={`flex size-9 items-center justify-center rounded-full text-[16px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                 page === p ? "bg-primary text-white" : "text-[#58975b]"
               }`}
             >
@@ -47,13 +59,14 @@ export function Pagination() {
 
       <button
         type="button"
-        onClick={() => setPage((p) => p + 1)}
-        className="flex h-10 w-[98px] items-center justify-between rounded-control bg-secondary px-4 text-[16px] font-medium text-white"
+        disabled={page >= totalPages}
+        onClick={() => onChange(page + 1)}
+        className="flex h-10 w-[98px] items-center justify-between rounded-control bg-secondary px-4 text-[16px] font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50"
       >
         Next
         <Image src="/icons/homepage/explore-pagination-next.svg" alt="" width={24} height={24} aria-hidden />
       </button>
-    </div>
+    </nav>
   );
 }
 

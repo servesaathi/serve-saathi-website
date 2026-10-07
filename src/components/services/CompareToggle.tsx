@@ -3,26 +3,26 @@
 import Image from "next/image";
 import { useId } from "react";
 import { useHydrated } from "@/lib/useHydrated";
-import { useCompareStore } from "@/store/compare.store";
+import { useCompareStore, type CompareItem } from "@/store/compare.store";
 import { MAX_COMPARE } from "./data";
 
 // "Compare" checkbox on the provider card (Figma 3316:43598) and the detail
 // page header (3337:166111): 20px, 2px primary border, r=6; ticked = solid
 // primary with a white check (Figma "Compare 1/2/3" frames).
 export function CompareToggle({
-  providerId,
+  provider,
   labelClassName = "text-primary font-medium",
 }: {
-  providerId: string;
+  provider: CompareItem;
   labelClassName?: string;
 }) {
   const id = useId();
   const hydrated = useHydrated();
-  const ids = useCompareStore((s) => s.ids);
+  const items = useCompareStore((s) => s.items);
   const toggle = useCompareStore((s) => s.toggle);
 
-  const checked = hydrated && ids.includes(providerId);
-  const full = hydrated && !checked && ids.length >= MAX_COMPARE;
+  const checked = hydrated && items.some((x) => x.id === provider.id);
+  const full = hydrated && !checked && items.length >= MAX_COMPARE;
 
   return (
     <label
@@ -35,7 +35,7 @@ export function CompareToggle({
         type="checkbox"
         checked={checked}
         disabled={full}
-        onChange={() => toggle(providerId)}
+        onChange={() => toggle(provider)}
         className="peer sr-only"
       />
       <span

@@ -8,7 +8,7 @@ import { useIsSignedIn } from "@/lib/useHydrated";
 import { useCompareStore } from "@/store/compare.store";
 import { FavoriteButton } from "./FavoriteButton";
 import { RatingStars } from "./RatingStars";
-import { directionsUrl, type Provider } from "./data";
+import { PLACEHOLDER_PHOTO, directionsUrl, type Provider } from "./data";
 
 // "02b_Homepage / Explore Service - Compare Detail Lock" (Figma 3318:96619)
 // and "... Compare Detail UnLock" (3337:165440). Signed-out visitors see the
@@ -16,44 +16,55 @@ import { directionsUrl, type Provider } from "./data";
 // "Compare All Providers Side-by-Side" prompt; a signed-in user (phone
 // verified via OTP) sees every row.
 
-type Row = { label?: string; values: string[]; kind?: "stars" };
+type Row = { label?: string; values: string[]; kind?: "stars"; stars?: number[] };
 type Section = { title?: string; rows: Row[] };
 
 function pad(list: string[], length: number, filler: string): string[] {
   return [...list, ...Array(Math.max(0, length - list.length)).fill(filler)];
 }
 
+/** One row per list item, padded so every column has the same number of rows. */
+function listRows(lists: string[][], filler: string): Row[] {
+  const length = Math.max(1, ...lists.map((l) => l.length));
+  const padded = lists.map((l) => pad(l, length, filler));
+  return Array.from({ length }, (_, i) => ({ values: padded.map((list) => list[i]) }));
+}
+
+// Rows are limited to what GET /services/providers/{id}/profile actually
+// returns — the Figma frame's "Founded / Mission / Impact Ratings" rows have
+// no backend field, so they're replaced with Experience / Location / Visits.
 function buildSections(providers: Provider[]): Section[] {
   const col = <T,>(fn: (p: Provider) => T) => providers.map(fn);
-  const programRows = Math.max(...col((p) => p.programs.length));
-  const serviceRows = Math.max(...col((p) => p.services.length));
-  const programs = col((p) => pad(p.programs, programRows, ""));
-  const services = col((p) => pad(p.services, serviceRows, "-"));
 
   return [
-    { rows: [{ label: "Price", values: col((p) => p.price) }] },
+    { rows: [{ label: "Price", values: col((p) => p.startingPrice ?? "Not listed") }] },
     {
-      title: "Identity & Mission",
+      title: "Identity",
       rows: [
-        { label: "Founded", values: col((p) => p.founded) },
-        { label: "Mission", values: col((p) => p.mission) },
+        { label: "Experience", values: col((p) => p.experience ?? "-") },
+        { label: "Location", values: col((p) => p.location) },
+        { label: "Categories", values: col((p) => p.categories.join(", ") || "-") },
       ],
     },
     {
       title: "Ratings and Review",
       rows: [
-        { label: "Ratings", values: col((p) => `${p.rating} (${p.reviewCount})`), kind: "stars" },
-        { label: "Impact Ratings", values: col((p) => p.impact[0] ?? "-") },
-        { values: col((p) => p.impact[1] ?? "-") },
+        {
+          label: "Ratings",
+          values: col((p) => (p.reviewCount > 0 ? `${p.rating} (${p.reviewCount})` : "No ratings yet")),
+          kind: "stars",
+          stars: col((p) => Math.round(p.rating)),
+        },
+        { label: "Visits done", values: col((p) => p.visits ?? "-") },
       ],
     },
-    {
-      title: "Programs & Initiatives",
-      rows: Array.from({ length: programRows }, (_, i) => ({ values: programs.map((list) => list[i]) })),
-    },
+    { title: "Programs & Initiatives", rows: listRows(col((p) => p.programs), "-") },
     {
       title: "Services Provided",
-      rows: Array.from({ length: serviceRows }, (_, i) => ({ values: services.map((list) => list[i]) })),
+      rows: listRows(
+        col((p) => p.services.map((s) => (s.price ? `${s.name} — ${s.price}` : s.name))),
+        "-",
+      ),
     },
   ];
 }
@@ -62,15 +73,9 @@ const CELL = "border-r border-b border-border-hairline";
 
 function OrganizationHeader({ provider, onRemove }: { provider: Provider; onRemove: () => void }) {
   return (
-    <div className="relative flex h-full flex-col items-center gap-4 pt-4" style={{ background: provider.logoBackground ?? "white" }}>
+    <div className="relative flex h-full flex-col items-center gap-4 bg-white pt-4">
       <div className="relative h-[120px] w-[150px]">
-        <Image
-          src={provider.logo ?? "/images/services/provider-photo-1.jpg"}
-          alt={`${provider.name} logo`}
-          fill
-          sizes="150px"
-          className={provider.logo ? "object-contain" : "object-cover"}
-        />
+        <Image src={PLACEHOLDER_PHOTO} alt="" fill sizes="150px" className="object-cover" />
       </div>
       <div className={`flex w-full flex-1 flex-col gap-4 bg-bg-base px-6 pt-4 pb-6 ${CELL}`}>
         <h2 className="text-[24px] leading-8 font-semibold text-primary">{provider.name}</h2>
@@ -91,7 +96,7 @@ function OrganizationHeader({ provider, onRemove }: { provider: Provider; onRemo
           >
             See Details
           </Link>
-          <FavoriteButton providerName={provider.name} tone="secondary" />
+          <FavoriteButton providerId={provider.id} providerName={provider.name} tone="secondary" />
         </div>
       </div>
       <button
@@ -188,7 +193,7 @@ export function CompareTable({ providers }: { providers: Provider[] }) {
                           >
                             {row.kind === "stars" ? (
                               <div className="flex flex-col gap-1">
-                                <RatingStars count={4} />
+                                <RatingStars count={row.stars?.[ci] ?? 0} />
                                 <span className="text-[18px] leading-7 font-semibold text-primary">{value}</span>
                               </div>
                             ) : (

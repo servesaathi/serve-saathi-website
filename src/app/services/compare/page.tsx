@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BackLink } from "@/components/services/BackLink";
 import { CompareTable } from "@/components/services/CompareTable";
-import { MAX_COMPARE, getProvider } from "@/components/services/data";
+import { MAX_COMPARE, isProviderId, toProvider } from "@/components/services/data";
+import { providerService } from "@/lib/api/services/provider.service";
 import { SiteShell } from "@/components/site/SiteShell";
 
 export const metadata: Metadata = { title: "Compare providers · Serve Saathi" };
@@ -10,13 +11,17 @@ export const metadata: Metadata = { title: "Compare providers · Serve Saathi" }
 // "02b_Homepage / Explore Service - Compare Detail Lock / UnLock" — Figma
 // 3318:96619 / 3337:165440. Providers come from `?ids=a,b,c` (set by the
 // CompareBar) so a comparison is linkable; the lock is decided client-side
-// from auth state inside CompareTable.
+// from auth state inside CompareTable. Profiles come from
+// GET /services/providers/{id}/profile; an id that fails to load (deleted,
+// unverified) just drops out of the comparison.
 export default async function ComparePage({ searchParams }: { searchParams: Promise<{ ids?: string }> }) {
   const { ids = "" } = await searchParams;
-  const providers = [...new Set(ids.split(","))]
-    .map((id) => getProvider(id.trim()))
-    .filter((p) => p !== undefined)
-    .slice(0, MAX_COMPARE);
+  const wanted = [...new Set(ids.split(",").map((id) => id.trim()))].filter(isProviderId).slice(0, MAX_COMPARE);
+  const results = await Promise.allSettled(wanted.map((id) => providerService.getProfile(id)));
+  const providers = results.flatMap((r) => (r.status === "fulfilled" ? [toProvider(r.value)] : []));
+
+  // "…for your Assisted Living" when every provider shares a category.
+  const shared = providers[0]?.categories.find((c) => providers.every((p) => p.categories.includes(c)));
 
   return (
     <SiteShell>
@@ -24,7 +29,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
         <div className="flex flex-col gap-6">
           <BackLink href="/services" />
           <h1 className="font-serif text-[40px] leading-[48px] text-text-primary">
-            Compare Organizations for your Assisted Living
+            {shared ? `Compare Organizations for your ${shared}` : "Compare Organizations"}
           </h1>
         </div>
 
