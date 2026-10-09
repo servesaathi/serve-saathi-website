@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:ews": "node --test \"src/lib/ews/**/*.test.ts\""
   },
   "dependencies": {
     "axios": "^1.20.0",

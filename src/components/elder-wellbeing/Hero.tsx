@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Button } from "@/components/ui/Button";
+import { StartCheckInButtons } from "@/components/ews/StartCheckInButtons";
 
 // "01. Hero Section" — Figma node 3421:33517.
 export function Hero() {
@@ -15,19 +15,7 @@ export function Hero() {
             daily living, health, social connection, and more. Takes a few minutes, and gives you
             a clear starting point for what kind of support might help.
           </p>
-          {/* TODO: no quick-check/full-assessment flow exists yet — wire these
-              up once that's built instead of routing to a 404 or an
-              unrelated page. */}
-          <div className="flex flex-wrap items-center gap-4">
-            <Button type="button">Take 2-min quick check</Button>
-            <Button
-              type="button"
-              variant="secondary"
-              rightIcon={<Image src="/icons/homepage/arrow-right.svg" alt="" width={24} height={24} />}
-            >
-              Start full assessment
-            </Button>
-          </div>
+          <StartCheckInButtons />
           <div className="flex flex-wrap items-center gap-1 pt-2 text-[18px] leading-7 text-primary italic">
             <span>No cost, no obligation</span>
             <span className="text-tertiary not-italic">&bull;</span>

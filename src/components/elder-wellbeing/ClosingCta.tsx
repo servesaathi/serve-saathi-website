@@ -1,5 +1,4 @@
-import Image from "next/image";
-import { Button } from "@/components/ui/Button";
+import { StartCheckInButtons } from "@/components/ews/StartCheckInButtons";
 
 // "05. Care Plan" (closing CTA) — Figma node 3421:33714.
 export function ClosingCta() {
@@ -14,14 +13,8 @@ export function ClosingCta() {
           Take the free assessment today and get a scored report plus a personalize care plan,
           free.
         </p>
-        {/* Same not-yet-built assessment flow as Hero.tsx's buttons. */}
-        <div className="flex flex-wrap items-center justify-center gap-10 pt-4">
-          <Button type="button" rightIcon={<Image src="/icons/homepage/arrow-right.svg" alt="" width={24} height={24} />}>
-            Start full assessment
-          </Button>
-          <Button type="button" variant="secondary">
-            Take 2-min quick check
-          </Button>
+        <div className="flex justify-center pt-4">
+          <StartCheckInButtons />
         </div>
       </div>
     </section>

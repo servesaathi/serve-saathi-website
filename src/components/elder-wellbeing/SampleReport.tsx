@@ -18,7 +18,7 @@ const SCORE_BANDS = [
 
 export function SampleReport() {
   return (
-    <section className="bg-bg-layout py-10">
+    <section id="sample-report" className="scroll-mt-24 bg-bg-layout py-10">
       <div className="mx-auto flex max-w-[1236px] flex-col items-center gap-12 px-8 lg:flex-row lg:items-center">
         <div className="flex w-full max-w-[420px] flex-col items-center gap-6 rounded-card bg-bg-base px-6 py-9">
           <div className="flex flex-col items-center">

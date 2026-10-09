@@ -18,7 +18,13 @@ function greeting(date: Date): string {
   return "Good evening";
 }
 
-export function DashboardGreeting() {
+type DashboardGreetingProps = {
+  /** Replaces the time-of-day greeting, e.g. "Your Wellbeing View". */
+  title?: string;
+  subtitle?: string;
+};
+
+export function DashboardGreeting({ title, subtitle = "Here’s how your care is looking today." }: DashboardGreetingProps = {}) {
   const user = useAuthStore((s) => s.user);
   const now = new Date();
   const firstName = user?.firstName ?? "there";
@@ -36,10 +42,10 @@ export function DashboardGreeting() {
       <div className="flex w-full flex-wrap items-center justify-between gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="font-serif text-[32px] leading-[1.2] text-text-primary sm:text-[40px] sm:leading-[48px]">
-            {greeting(now)} {firstName},
+            {title ?? `${greeting(now)} ${firstName},`}
           </h1>
           <p className="text-[18px] leading-7 text-text-secondary">
-            Here&rsquo;s how your care is looking today.
+            {subtitle}
           </p>
         </div>
 

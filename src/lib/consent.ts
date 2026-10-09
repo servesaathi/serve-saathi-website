@@ -19,7 +19,9 @@ export type ConsentPurpose =
   | "phone-verification"
   | "account-creation"
   | "callback-request"
-  | "provider-application";
+  | "provider-application"
+  /** EWS purpose P1 — take the check-in and see my results. */
+  | "ews-check-in";
 
 export type ConsentRecord = {
   purpose: ConsentPurpose;

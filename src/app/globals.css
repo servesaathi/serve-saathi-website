@@ -32,6 +32,8 @@
   --color-text-muted: #787674;
 
   --color-error: #dc2626;
+  /* Figma "Status - Error (L)" — tint behind error-toned chips/icons. */
+  --color-error-light: #fee2e2;
 }
 
 @theme inline {
@@ -56,6 +58,7 @@
   --color-text-muted: var(--color-text-muted);
 
   --color-error: var(--color-error);
+  --color-error-light: var(--color-error-light);
 
   --font-sans: var(--font-atkinson);
   /* Display heading typeface for the 09/2026 website redesign (H1-H3 only —

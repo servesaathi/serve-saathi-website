@@ -25,8 +25,12 @@ const MODE_CONFIG: Record<LoginMode, { redirect: string; roles?: string[] }> = {
   admin: { redirect: "/admin", roles: ["admin", "super_admin"] },
 };
 
-export function LoginForm({ mode = "user" }: { mode?: LoginMode }) {
-  const { redirect, roles: allowedRoles } = MODE_CONFIG[mode];
+/** Only same-site paths — never an absolute or protocol-relative URL. */
+const safeNext = (next?: string) => (next && next.startsWith("/") && !next.startsWith("//") ? next : undefined);
+
+export function LoginForm({ mode = "user", next }: { mode?: LoginMode; next?: string }) {
+  const { roles: allowedRoles } = MODE_CONFIG[mode];
+  const redirect = safeNext(next) ?? MODE_CONFIG[mode].redirect;
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
   const [email, setEmail] = useState("");

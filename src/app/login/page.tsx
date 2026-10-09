@@ -11,7 +11,8 @@ import { Logo } from "@/components/ui/Logo";
 // OnboardingPanel treatment, so /login now reads as part of the same site
 // as everywhere else. Scoped to this route only — join/verify-phone/
 // verify-otp/create-account still use AuthLayout.
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string | string[] }> }) {
+  const { next } = await searchParams;
   return (
     <div className="flex min-h-dvh flex-col bg-bg-layout">
       <SiteHeader />
@@ -25,7 +26,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <LoginForm />
+          <LoginForm next={typeof next === "string" ? next : undefined} />
 
           <p className="text-[18px] leading-7 text-text-secondary">
             Don&apos;t have an account yet?{" "}
