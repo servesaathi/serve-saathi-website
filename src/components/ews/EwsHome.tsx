@@ -48,8 +48,10 @@ export function EwsHome({ emptyState }: { emptyState: ReactNode }) {
           userId={ews.userId}
           latest={ews.latest}
           history={ews.history}
+          reminderSnoozedUntil={ews.reminderSnoozedUntil}
           onRetake={() => setSetupOpen(true)}
           onDeleted={ews.refresh}
+          onSnoozed={ews.refresh}
         />
         {setup}
       </>

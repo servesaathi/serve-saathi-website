@@ -11,6 +11,8 @@
 //   listHistory          → GET    /ews/results
 //   deleteAssessment     → DELETE /ews/assessments/:id
 //   requestCallback      → POST   /ews/callbacks
+//   getReminderSnooze    → GET    /ews/reminder               (spec I routine follow-up)
+//   snoozeReminder       → POST   /ews/reminder/snooze
 //
 // Privacy rules the backend must keep (spec G, L.1):
 //   - EMO4 / HOM4 / EMO4P / HOM4P answers are never written anywhere — the
@@ -23,6 +25,7 @@
 import { DIMS, ITEMS, QUESTIONNAIRE_VERSION, itemById, type Answers, type Mode, type SafetyId } from "./questionnaire.ts";
 import { isVisible } from "./flow.ts";
 import { computeResult, type EwsResult } from "./scoring.ts";
+import { SNOOZE_DAYS, addDays, todayIso } from "./tracking.ts";
 
 export type SafetyUserAction = "called_number" | "notified_contact" | "callback_requested" | "dismissed" | "exited";
 
@@ -79,7 +82,11 @@ export type StartInput = {
   proxy?: ProxyDetails;
 };
 
-type UserStore = { assessments: Assessment[] };
+type UserStore = {
+  assessments: Assessment[];
+  /** YYYY-MM-DD the 90-day reminder is snoozed until (spec I). */
+  reminderSnoozedUntil?: string;
+};
 
 const RESUME_DAYS = 7;
 const storeKey = (userId: string) => `servesaathi-ews:${userId}`;
@@ -109,10 +116,6 @@ const readRestricted = (userId: string) => readJson<Record<string, Answers>>(res
 
 const plusDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
 /** Today as YYYY-MM-DD in the user's own timezone (toISOString is UTC). */
-const localDate = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `ews-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -202,7 +205,7 @@ export async function completeAssessment(userId: string, assessmentId: string): 
     const scoringAnswers = { ...a.answers, ...(visible.has("FIN3") ? restricted : {}) };
     a.result = computeResult(scoringAnswers);
     a.status = "completed";
-    a.completedOn = localDate();
+    a.completedOn = todayIso();
     a.progress = { ...a.progress, dimIdx: DIMS.length, pending: [], jitSeen: [] };
   });
 }
@@ -224,6 +227,18 @@ export async function deleteAssessment(userId: string, assessmentId: string): Pr
   const restricted = readRestricted(userId);
   delete restricted[assessmentId];
   writeJson(restrictedKey(userId), restricted);
+}
+
+export async function getReminderSnooze(userId: string): Promise<string | null> {
+  return readStore(userId).reminderSnoozedUntil ?? null;
+}
+
+/** Spec I: the routine reminder can be put off for 2 weeks. */
+export async function snoozeReminder(userId: string): Promise<string> {
+  const store = readStore(userId);
+  store.reminderSnoozedUntil = addDays(todayIso(), SNOOZE_DAYS);
+  writeStore(userId, store);
+  return store.reminderSnoozedUntil;
 }
 
 export type CallbackCategory = "safety_tier1" | "safety_tier2" | "area_support" | "general";

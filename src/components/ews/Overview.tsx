@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { Button } from "@/components/ui/Button";
-import { deleteAssessment, type Assessment, type SafetyEvent } from "@/lib/ews/ewsService";
+import { deleteAssessment, snoozeReminder, type Assessment, type SafetyEvent } from "@/lib/ews/ewsService";
 import { optionLabel, questionText } from "@/lib/ews/flow";
-import { DISCLAIMER, ITEMS, SAFETY, WHEN_PROFESSIONAL, WHEN_URGENT, type DimId } from "@/lib/ews/questionnaire";
+import { DISCLAIMER, ITEMS, ROUTINE_DUE, SAFETY, WHEN_PROFESSIONAL, WHEN_URGENT, type DimId } from "@/lib/ews/questionnaire";
+import { nextCheckIn, todayIso } from "@/lib/ews/tracking";
 import { AreaList } from "./AreaList";
 import { CallbackDialog } from "./CallbackDialog";
 import { EwsDialog } from "./EwsDialog";
@@ -25,17 +26,21 @@ type OverviewProps = {
   userId: string;
   latest: Assessment;
   history: Assessment[];
+  reminderSnoozedUntil: string | null;
   onRetake: () => void;
   onDeleted: () => void;
+  onSnoozed: () => void;
 };
 
-export function Overview({ userId, latest, history, onRetake, onDeleted }: OverviewProps) {
+export function Overview({ userId, latest, history, reminderSnoozedUntil, onRetake, onDeleted, onSnoozed }: OverviewProps) {
   const result = latest.result!;
   const [reopened, setReopened] = useState<SafetyEvent | null>(null);
   const [callbackDim, setCallbackDim] = useState<DimId | null>(null);
   const [answersOpen, setAnswersOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const [today] = useState(() => todayIso());
+  const reminder = nextCheckIn(latest.completedOn!, today, reminderSnoozedUntil);
   const shown = latest.events.filter((e) => e.tier <= 2);
   const answeredBy = latest.proxy ? `your ${latest.proxy.relationship}, about ${latest.proxy.elderName}` : "you";
   const completed = new Date(`${latest.completedOn}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -48,6 +53,26 @@ export function Overview({ userId, latest, history, onRetake, onDeleted }: Overv
           This is a check-in, not a medical test. Completed {completed} · Answered by {answeredBy}
         </p>
       </div>
+
+      {reminder.due && (
+        <section aria-labelledby="ews-due" className="flex flex-wrap items-center justify-between gap-4 rounded-card border-l-4 border-primary bg-bg-base px-6 py-5">
+          <h2 id="ews-due" className="text-[20px] leading-7 font-semibold text-text-primary">
+            {ROUTINE_DUE}
+          </h2>
+          <div className="flex flex-wrap items-center gap-4">
+            <Button onClick={onRetake}>Start check-in</Button>
+            <Button
+              variant="hyperlink"
+              onClick={async () => {
+                await snoozeReminder(userId);
+                onSnoozed();
+              }}
+            >
+              Remind me in 2 weeks
+            </Button>
+          </div>
+        </section>
+      )}
 
       {shown.length > 0 && (
         <section aria-labelledby="ews-support" className="flex flex-col gap-3 rounded-card border-l-4 border-tertiary bg-bg-orange px-6 py-5">
@@ -69,7 +94,7 @@ export function Overview({ userId, latest, history, onRetake, onDeleted }: Overv
 
       <div className="flex flex-col items-stretch gap-6 lg:flex-row">
         <OverallScoreCard assessment={latest} onRetake={onRetake} />
-        <ScoreTrend history={history} />
+        <ScoreTrend history={history} reminder={reminder} />
       </div>
 
       <section aria-labelledby="ews-areas" className="flex flex-col gap-6">

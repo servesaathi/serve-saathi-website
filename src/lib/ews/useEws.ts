@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useIsSignedIn } from "@/lib/useHydrated";
 import useAuthStore from "@/store/auth.store";
-import { getInProgress, listHistory, type Assessment } from "./ewsService";
+import { getInProgress, getReminderSnooze, listHistory, type Assessment } from "./ewsService";
 
 export type EwsState =
   | { status: "loading" }
@@ -17,9 +17,11 @@ export type EwsState =
       draft: Assessment | null;
       /** Completed check-ins, newest first. */
       history: Assessment[];
+      /** YYYY-MM-DD the 90-day reminder is snoozed until, if it is. */
+      reminderSnoozedUntil: string | null;
     };
 
-type Loaded = { userId: string; version: number; draft: Assessment | null; history: Assessment[] };
+type Loaded = { userId: string; version: number; draft: Assessment | null; history: Assessment[]; snooze: string | null };
 
 /** The signed-in user's EWS data, reloadable after a check-in changes it. */
 export function useEws(): EwsState & { refresh: () => void } {
@@ -32,8 +34,8 @@ export function useEws(): EwsState & { refresh: () => void } {
   useEffect(() => {
     if (!signedIn || !userId) return;
     let cancelled = false;
-    Promise.all([listHistory(userId), getInProgress(userId)]).then(([history, draft]) => {
-      if (!cancelled) setLoaded({ userId, version, draft, history });
+    Promise.all([listHistory(userId), getInProgress(userId), getReminderSnooze(userId)]).then(([history, draft, snooze]) => {
+      if (!cancelled) setLoaded({ userId, version, draft, history, snooze });
     });
     return () => {
       cancelled = true;
@@ -50,6 +52,7 @@ export function useEws(): EwsState & { refresh: () => void } {
     latest: loaded.history[0] ?? null,
     draft: loaded.draft,
     history: loaded.history,
+    reminderSnoozedUntil: loaded.snooze,
     refresh,
   };
 }

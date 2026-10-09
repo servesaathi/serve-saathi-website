@@ -794,3 +794,11 @@ export const NOT_EMERGENCY = "Serve Saathi is not an emergency service.";
 export const TREND_GUARDRAIL =
   "Changes in your check-in reflect your answers, not a medical measurement. Only a professional can tell what a change means.";
 export const FIRST_CHECK_IN = "This is your starting point. Next time, you’ll be able to see what has changed.";
+
+// ── Tracking copy (spec I) ────────────────────────────────────────────────
+export const CHECK_IN_CYCLE = "We suggest a full check-in every 3 months. Each one adds a point here, so you can see what has changed over time.";
+export const ROUTINE_DUE = "It’s been 3 months — time for a quick check-in.";
+export const DETERIORATION =
+  "A few things seem harder than last time. This can happen for many reasons. It may help to talk with family or a doctor.";
+export const changedCopy = (area: string) => `${area} has changed since your last check-in.`;
+export const betterCopy = (area: string) => `${area} is looking better than last time.`;

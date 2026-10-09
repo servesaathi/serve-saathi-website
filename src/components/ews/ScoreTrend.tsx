@@ -3,14 +3,17 @@
 import { useState } from "react";
 import type { Assessment } from "@/lib/ews/ewsService";
 import { overallShort } from "@/lib/ews/flow";
-import { FIRST_CHECK_IN, TREND_GUARDRAIL } from "@/lib/ews/questionnaire";
+import { CHECK_IN_CYCLE, DETERIORATION, FIRST_CHECK_IN, TREND_GUARDRAIL, betterCopy, changedCopy, dimById } from "@/lib/ews/questionnaire";
+import { changesSinceLast, lineOf, trendPoints, type Reminder } from "@/lib/ews/tracking";
 
 // "Score trend" — Figma card beside the overall score (3344:332905): serif
 // title, an orange 3M / 6M / 1Y segmented control, and a line of past
 // overall scores with the "going well" zone shaded. Spec I rules applied:
 // family-answered (proxy) check-ins get a hollow marker and are never joined
 // into the same line as the elder's own; every trend view carries the
-// "not a medical measurement" guardrail.
+// "not a medical measurement" guardrail. Spec I tracking: one point per 7
+// days (the latest), the 3-month cycle and next due date, and band-change
+// messages only — movement inside a band is never called out.
 
 const RANGES = [
   { id: "3M", months: 3 },
@@ -23,9 +26,12 @@ const H = 140;
 const PAD = { l: 8, r: 36, t: 8, b: 24 };
 const y = (score: number) => PAD.t + (1 - score / 100) * (H - PAD.t - PAD.b);
 
-type ScoreTrendProps = { history: Assessment[] };
+const longDate = (isoDate: string) =>
+  new Date(`${isoDate}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
-export function ScoreTrend({ history }: ScoreTrendProps) {
+type ScoreTrendProps = { history: Assessment[]; reminder: Reminder };
+
+export function ScoreTrend({ history, reminder }: ScoreTrendProps) {
   const [range, setRange] = useState<(typeof RANGES)[number]["id"]>("6M");
   const [active, setActive] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
@@ -33,14 +39,14 @@ export function ScoreTrend({ history }: ScoreTrendProps) {
   const months = RANGES.find((r) => r.id === range)!.months;
   const from = new Date(now);
   from.setMonth(from.getMonth() - months);
-  const points = history
-    .filter((a) => a.result?.internal != null && new Date(`${a.completedOn}T00:00:00`) >= from)
-    .sort((a, b) => a.completedOn!.localeCompare(b.completedOn!) || a.startedAt.localeCompare(b.startedAt));
+  const tracked = trendPoints(history);
+  const points = tracked.filter((a) => a.result!.internal != null && new Date(`${a.completedOn}T00:00:00`) >= from);
+  const changes = changesSinceLast(history);
 
   const t0 = from.getTime();
   const span = now - t0 || 1;
   const x = (a: Assessment) => PAD.l + ((new Date(a.startedAt).getTime() - t0) / span) * (W - PAD.l - PAD.r);
-  const own = points.filter((a) => a.mode !== "proxy");
+  const own = points.filter((a) => lineOf(a.mode) === "own");
   const line = own.map((a, i) => `${i ? "L" : "M"}${x(a).toFixed(1)},${y(a.result!.internal!).toFixed(1)}`).join(" ");
   const selected = points.find((a) => a.id === active) ?? points[points.length - 1];
 
@@ -89,6 +95,11 @@ export function ScoreTrend({ history }: ScoreTrendProps) {
             </text>
           </g>
         ))}
+        {tracked.length < 2 && (
+          <text x={(W - PAD.r + PAD.l) / 2} y={y(40)} textAnchor="middle" fontSize="11" fill="#615F5D">
+            Your next check-in adds the second point
+          </text>
+        )}
         {own.length > 1 && <path d={line} fill="none" stroke="#2e7d32" strokeWidth={2.5} strokeLinejoin="round" />}
         {points.map((a) => {
           const proxy = a.mode === "proxy";
@@ -115,7 +126,7 @@ export function ScoreTrend({ history }: ScoreTrendProps) {
       {selected ? (
         <p className="text-[16px] leading-[22px] text-text-secondary">
           <strong className="text-text-primary">
-            {new Date(`${selected.completedOn}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+            {longDate(selected.completedOn!)}
           </strong>{" "}
           · {selected.result!.internal} out of 100 · {overallShort(selected.result!)}
           {selected.mode === "proxy" && selected.proxy ? ` · answered by your ${selected.proxy.relationship}` : ""}
@@ -123,7 +134,33 @@ export function ScoreTrend({ history }: ScoreTrendProps) {
       ) : (
         <p className="text-[16px] leading-[22px] text-text-secondary">No check-ins in this period.</p>
       )}
-      {history.length === 1 && <p className="text-[16px] leading-[22px] text-text-secondary">{FIRST_CHECK_IN}</p>}
+      {tracked.length === 1 && <p className="text-[16px] leading-[22px] text-text-secondary">{FIRST_CHECK_IN}</p>}
+
+      {changes && (
+        <div className="flex flex-col gap-2 border-t-[1.5px] border-border-hairline pt-4">
+          <h3 className="text-[18px] leading-6 font-semibold text-text-primary">Since your check-in on {longDate(changes.previous.completedOn!)}</h3>
+          {changes.dims.length === 0 ? (
+            <p className="text-[16px] leading-[22px] text-text-secondary">No area has changed band since last time.</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {changes.dims.map((c) => (
+                <li key={c.dim} className="text-[16px] leading-[22px] text-text-secondary">
+                  {c.direction === "better" ? betterCopy(dimById(c.dim).name) : changedCopy(dimById(c.dim).name)}
+                </li>
+              ))}
+            </ul>
+          )}
+          {changes.deteriorated && <p className="text-[16px] leading-[22px] text-text-secondary">{DETERIORATION}</p>}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-1 rounded-card bg-bg-layout px-4 py-3">
+        <p className="text-[16px] leading-[22px] font-semibold text-text-primary">
+          {reminder.due ? "Your next check-in is due now" : `Next check-in suggested: ${longDate(reminder.dueOn)}`}
+          {!reminder.due && <span className="font-normal text-text-tertiary"> · in {reminder.daysLeft} {reminder.daysLeft === 1 ? "day" : "days"}</span>}
+        </p>
+        <p className="text-[14px] leading-5 text-text-tertiary">{CHECK_IN_CYCLE}</p>
+      </div>
       <p className="text-[14px] leading-5 text-text-muted">{TREND_GUARDRAIL}</p>
     </section>
   );
